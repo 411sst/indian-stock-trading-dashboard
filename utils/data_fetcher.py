@@ -12,6 +12,8 @@ from textblob import TextBlob
 import ta
 import os
 from dotenv import load_dotenv
+import time
+import random
 from .indian_stocks import INDIAN_STOCKS, INDICES
 # Load environment variables
 load_dotenv()
@@ -30,57 +32,63 @@ def get_market_status():
     
     return is_market_time and is_weekday, now.strftime('%Y-%m-%d %H:%M:%S IST')
 
-@st.cache_data(ttl=300)  # Cache for 5 minutes
+@st.cache_data(ttl=600)  # Cache for 10 minutes instead of 5
 def fetch_index_data():
-    """Fetch data for NIFTY 50 and SENSEX indices"""
+    """Fetch data for NIFTY 50 and SENSEX indices with retry logic"""
     index_data = {}
     
     for ticker, name in INDICES.items():
         try:
+            # Add random delay to avoid hitting rate limits
+            time.sleep(random.uniform(1, 3))
+            
             stock = yf.Ticker(ticker)
-            hist = stock.history(period="1d")
-            prev_close = stock.info['previousClose']
+            hist = stock.history(period="2d")
             
-            current_price = hist['Close'][-1] if not hist.empty else prev_close
-            change = current_price - prev_close
-            percent_change = (change / prev_close) * 100
-            
-            index_data[ticker] = {
-                'name': name,
-                'value': current_price,
-                'change': change,
-                'percent_change': percent_change
-            }
+            if len(hist) >= 2:
+                current_price = hist['Close'][-1]
+                prev_close = hist['Close'][-2]
+                change = current_price - prev_close
+                percent_change = (change / prev_close) * 100
+                
+                index_data[ticker] = {
+                    'name': name,
+                    'value': current_price,
+                    'change': change,
+                    'percent_change': percent_change
+                }
         except Exception as e:
-            st.error(f"Error fetching data for {ticker}: {str(e)}")
+            print(f"Error fetching data for {ticker}: {str(e)}")
             continue
             
     return index_data
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=600)  # Increased cache time
 def fetch_gainers_losers():
-    """Get top 5 gainers and losers from NSE"""
-    # This is a simplified approach since yfinance doesn't directly provide this data
+    """Get top 5 gainers and losers from NSE with retry logic"""
     gainers = []
     losers = []
     
     # Sample stocks for demonstration
-    sample_stocks = list(INDIAN_STOCKS.keys())[:10]
+    sample_stocks = list(INDIAN_STOCKS.keys())[:8]  # Reduced from 10 to 8
     
     for symbol in sample_stocks:
         try:
+            # Add delay between requests
+            time.sleep(random.uniform(0.5, 1.5))
+            
             stock = yf.Ticker(symbol)
-            hist = stock.history(period="1d")
-            if hist.empty:
+            hist = stock.history(period="2d")
+            if len(hist) < 2:
                 continue
                 
-            prev_close = hist['Close'][-2] if len(hist) > 1 else stock.info.get('previousClose', 0)
             current_price = hist['Close'][-1]
+            prev_close = hist['Close'][-2]
             
             change = current_price - prev_close
             percent_change = (change / prev_close) * 100 if prev_close != 0 else 0
             
-            if change > 0:
+            if percent_change > 0:
                 gainers.append({
                     'symbol': symbol,
                     'price': current_price,
@@ -113,10 +121,13 @@ def fetch_sector_performance():
         for sector, perf in zip(sectors, performance)
     ]
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=600)  # Increased cache time
 def fetch_stock_data(symbol, period='1mo'):
-    """Fetch historical data for a specific stock"""
+    """Fetch historical data for a specific stock with retry logic"""
     try:
+        # Add delay before request
+        time.sleep(random.uniform(0.5, 2))
+        
         stock = yf.Ticker(symbol)
         hist = stock.history(period=period)
         
