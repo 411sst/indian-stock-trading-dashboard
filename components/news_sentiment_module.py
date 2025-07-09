@@ -1,4 +1,4 @@
-# pages/news_sentiment.py
+# components/news_sentiment_module.py
 import streamlit as st
 from utils.data_fetcher import fetch_news_sources
 from utils.sentiment_analysis import create_sentiment_trend_chart, create_sector_sentiment_chart, create_market_buzz_chart
@@ -45,40 +45,119 @@ def news_sentiment_page(mode):
     st.subheader(f"Latest News ({len(filtered_news)})")
     
     # Layout configuration for news cards
-    num_cols = 3 if len(filtered_news) > 2 else len(filtered_news) or 1
-    cols = st.columns(num_cols)
-    
     for i, item in enumerate(filtered_news):
-        with cols[i % num_cols]:
-            sentiment_color = {
-                "positive": "#dcffe4",
-                "negative": "#ffe5e5",
-                "neutral": "#fff3cd"
-            }.get(item['sentiment'], "#ffffff")
+        # Determine colors based on sentiment
+        if item['sentiment'] == 'positive':
+            bg_color = "#1f2937"  # Dark gray
+            border_color = "#10b981"  # Green
+            sentiment_color = "#10b981"
+            sentiment_bg = "#065f46"
+        elif item['sentiment'] == 'negative':
+            bg_color = "#1f2937"  # Dark gray
+            border_color = "#ef4444"  # Red
+            sentiment_color = "#ef4444"
+            sentiment_bg = "#7f1d1d"
+        else:
+            bg_color = "#1f2937"  # Dark gray
+            border_color = "#f59e0b"  # Yellow
+            sentiment_color = "#f59e0b"
+            sentiment_bg = "#78350f"
+        
+        # Create news card
+        st.markdown(f"""
+        <div style='
+            background-color: {bg_color}; 
+            border: 1px solid {border_color}; 
+            border-radius: 8px; 
+            padding: 20px; 
+            margin: 15px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        '>
+            <h4 style='
+                color: #ffffff; 
+                margin-top: 0; 
+                margin-bottom: 15px;
+                font-size: 18px;
+                line-height: 1.4;
+            '>{item['title']}</h4>
             
-            sentiment_text_color = {
-                "positive": "#1e8e3e",
-                "negative": "#d93020",
-                "neutral": "#926900"
-            }.get(item['sentiment'], "#000000")
-            
-            st.markdown(f"""
-            <div style='background-color: {sentiment_color}; padding: 10px; border-radius: 5px; margin: 5px 0;'>
-                <h4 style='margin-top: 0;'>{item['title']}</h4>
-                <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;'>
-                    <span style='font-size: 0.9em; color: #666;'>{item['source']}</span>
-                    <span style='font-size: 0.9em; color: #666;'>Score: {item['score']:.2f}</span>
+            <div style='display: flex; justify-content: space-between; align-items: center;'>
+                <div style='display: flex; align-items: center; gap: 15px;'>
+                    <span style='color: #9ca3af; font-size: 14px;'><strong>Source:</strong> {item['source']}</span>
+                    <span style='color: #9ca3af; font-size: 14px;'><strong>Score:</strong> {item['score']:.2f}</span>
                 </div>
-                <div style='display: flex; justify-content: space-between; align-items: center;'>
-                    <span style='background-color: {sentiment_text_color}66; color: white; padding: 3px 6px; border-radius: 3px; font-weight: bold;'>
-                        {item['sentiment'].capitalize()}
-                    </span>
-                    <button style='background-color: #1a73e8; color: white; border: none; border-radius: 3px; padding: 5px 10px; cursor: pointer;'>
-                        Read More →
-                    </button>
+                <div style='
+                    background-color: {sentiment_bg}; 
+                    color: {sentiment_color}; 
+                    padding: 6px 12px; 
+                    border-radius: 20px; 
+                    font-weight: bold;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                '>
+                    {item['sentiment']}
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+        </div>
+    # Display news cards
+    st.subheader(f"Latest News ({len(filtered_news)})")
+    
+    # Layout configuration for news cards
+    for i, item in enumerate(filtered_news):
+        # Determine colors based on sentiment
+        if item['sentiment'] == 'positive':
+            bg_color = "#1f2937"  # Dark gray
+            border_color = "#10b981"  # Green
+            sentiment_color = "#10b981"
+            sentiment_bg = "#065f46"
+        elif item['sentiment'] == 'negative':
+            bg_color = "#1f2937"  # Dark gray
+            border_color = "#ef4444"  # Red
+            sentiment_color = "#ef4444"
+            sentiment_bg = "#7f1d1d"
+        else:
+            bg_color = "#1f2937"  # Dark gray
+            border_color = "#f59e0b"  # Yellow
+            sentiment_color = "#f59e0b"
+            sentiment_bg = "#78350f"
+        
+        # Create news card
+        st.markdown(f"""
+        <div style='
+            background-color: {bg_color}; 
+            border: 1px solid {border_color}; 
+            border-radius: 8px; 
+            padding: 20px; 
+            margin: 15px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        '>
+            <h4 style='
+                color: #ffffff; 
+                margin-top: 0; 
+                margin-bottom: 15px;
+                font-size: 18px;
+                line-height: 1.4;
+            '>{item['title']}</h4>
+            
+            <div style='display: flex; justify-content: space-between; align-items: center;'>
+                <div style='display: flex; align-items: center; gap: 15px;'>
+                    <span style='color: #9ca3af; font-size: 14px;'><strong>Source:</strong> {item['source']}</span>
+                    <span style='color: #9ca3af; font-size: 14px;'><strong>Score:</strong> {item['score']:.2f}</span>
+                </div>
+                <div style='
+                    background-color: {sentiment_bg}; 
+                    color: {sentiment_color}; 
+                    padding: 6px 12px; 
+                    border-radius: 20px; 
+                    font-weight: bold;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                '>
+                    {item['sentiment']}
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
     
     # Sentiment Analysis Charts
     st.markdown("---")
