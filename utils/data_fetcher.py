@@ -240,7 +240,8 @@ def fetch_news_sources():
                         "title": article["title"],
                         "source": "Economic Times",
                         "sentiment": sentiment["sentiment"],
-                        "score": sentiment["score"]
+                        "score": sentiment["score"],
+                        "url": article.get("url", "https://economictimes.indiatimes.com/markets/stocks/news")
                     })
                     
             # Business Standard
@@ -254,7 +255,8 @@ def fetch_news_sources():
                         "title": article["title"],
                         "source": "Business Standard",
                         "sentiment": sentiment["sentiment"],
-                        "score": sentiment["score"]
+                        "score": sentiment["score"],
+                        "url": article.get("url", "https://www.business-standard.com/markets/news")
                     })
         
         # Moneycontrol RSS Feed
@@ -265,7 +267,8 @@ def fetch_news_sources():
                 "title": entry.title,
                 "source": "Moneycontrol",
                 "sentiment": sentiment["sentiment"],
-                "score": sentiment["score"]
+                "score": sentiment["score"],
+                "url": entry.get("link", "https://www.moneycontrol.com/news/business/markets/")
             })
             
         # Livemint RSS Feed
@@ -276,7 +279,8 @@ def fetch_news_sources():
                 "title": entry.title,
                 "source": "Live Mint",
                 "sentiment": sentiment["sentiment"],
-                "score": sentiment["score"]
+                "score": sentiment["score"],
+                "url": entry.get("link", "https://www.livemint.com/market")
             })
             
         return news_items
@@ -285,12 +289,48 @@ def fetch_news_sources():
         st.warning(f"Error fetching news: {str(e)}. Using mock news data.")
         # Return mock data if API fails
         return [
-            {"title": "Nifty 50 hits record high on FII inflows", "source": "Economic Times", "sentiment": "positive", "score": 0.85},
-            {"title": "Banking sector shows strong Q2 results", "source": "Business Standard", "sentiment": "positive", "score": 0.78},
-            {"title": "Crude oil prices rise affecting FMCG margins", "source": "Moneycontrol", "sentiment": "negative", "score": -0.65},
-            {"title": "IT companies report steady growth in exports", "source": "The Hindu Business Line", "sentiment": "positive", "score": 0.82},
-            {"title": "Auto sector faces supply chain challenges", "source": "Live Mint", "sentiment": "neutral", "score": 0.25},
-            {"title": "Govt announces new infrastructure projects", "source": "Financial Express", "sentiment": "positive", "score": 0.91}
+            {
+                "title": "Nifty 50 hits record high on FII inflows", 
+                "source": "Economic Times", 
+                "sentiment": "positive", 
+                "score": 0.85,
+                "url": "https://economictimes.indiatimes.com/markets/stocks/news"
+            },
+            {
+                "title": "Banking sector shows strong Q2 results", 
+                "source": "Business Standard", 
+                "sentiment": "positive", 
+                "score": 0.78,
+                "url": "https://www.business-standard.com/markets/news"
+            },
+            {
+                "title": "Crude oil prices rise affecting FMCG margins", 
+                "source": "Moneycontrol", 
+                "sentiment": "negative", 
+                "score": -0.65,
+                "url": "https://www.moneycontrol.com/news/business/markets/"
+            },
+            {
+                "title": "IT companies report steady growth in exports", 
+                "source": "The Hindu Business Line", 
+                "sentiment": "positive", 
+                "score": 0.82,
+                "url": "https://www.thehindubusinessline.com/markets/"
+            },
+            {
+                "title": "Auto sector faces supply chain challenges", 
+                "source": "Live Mint", 
+                "sentiment": "neutral", 
+                "score": 0.25,
+                "url": "https://www.livemint.com/market"
+            },
+            {
+                "title": "Govt announces new infrastructure projects", 
+                "source": "Financial Express", 
+                "sentiment": "positive", 
+                "score": 0.91,
+                "url": "https://www.financialexpress.com/market/"
+            }
         ]
 
 def analyze_sentiment(text):
