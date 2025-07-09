@@ -1,4 +1,39 @@
 # utils/portfolio_manager.py
+import pandas as pd
+import streamlit as st
+import yfinance as yf
+import plotly.graph_objects as go
+
+def load_sample_portfolio():
+    """Load sample portfolio data from CSV"""
+    try:
+        df = pd.read_csv("sample_portfolio.csv")
+        return df.to_dict('records')
+    except Exception as e:
+        st.error(f"Error loading sample portfolio: {str(e)}")
+        return []
+
+def add_to_portfolio(portfolio, new_entry):
+    """Add a new holding to the portfolio"""
+    portfolio.append(new_entry)
+    return portfolio
+
+def remove_from_portfolio(portfolio, index):
+    """Remove a holding from the portfolio by index"""
+    if 0 <= index < len(portfolio):
+        portfolio.pop(index)
+    return portfolio
+
+def update_portfolio(portfolio, index, updated_entry):
+    """Update a specific holding in the portfolio"""
+    if 0 <= index < len(portfolio):
+        portfolio[index] = updated_entry
+    return portfolio
+
+def export_to_csv(portfolio):
+    """Export portfolio to CSV format"""
+    df = pd.DataFrame(portfolio)
+    return df.to_csv(index=False).encode('utf-8')
 
 def calculate_detailed_portfolio_value(portfolio):
     """Calculate detailed portfolio value including returns and risk metrics"""
@@ -101,3 +136,33 @@ def create_performance_comparison_chart(portfolio_history, benchmark_history):
     )
     
     return fig
+
+def calculate_portfolio_metrics(portfolio_value):
+    """Calculate advanced portfolio metrics"""
+    if not portfolio_value or not portfolio_value['holdings']:
+        return {}
+    
+    holdings = portfolio_value['holdings']
+    returns = [holding['return_percentage'] for holding in holdings]
+    weights = [holding['current_value'] / portfolio_value['total_value'] for holding in holdings]
+    
+    # Calculate weighted average return
+    weighted_return = sum(r * w for r, w in zip(returns, weights))
+    
+    # Calculate portfolio variance (simplified)
+    variance = sum(w * (r - weighted_return) ** 2 for r, w in zip(returns, weights))
+    volatility = variance ** 0.5
+    
+    # Count profitable vs losing positions
+    profitable_positions = len([r for r in returns if r > 0])
+    losing_positions = len([r for r in returns if r < 0])
+    neutral_positions = len([r for r in returns if r == 0])
+    
+    return {
+        "weighted_return": weighted_return,
+        "volatility": volatility,
+        "profitable_positions": profitable_positions,
+        "losing_positions": losing_positions,
+        "neutral_positions": neutral_positions,
+        "win_rate": (profitable_positions / len(returns)) * 100 if returns else 0
+    }
