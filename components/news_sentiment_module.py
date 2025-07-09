@@ -44,7 +44,7 @@ def news_sentiment_page(mode):
     # Display news cards
     st.subheader(f"Latest News ({len(filtered_news)})")
     
-    # Create news cards using Streamlit components instead of HTML
+    # Create news cards with working links
     for i, item in enumerate(filtered_news):
         # Create a container for each news item
         container = st.container()
@@ -61,7 +61,7 @@ def news_sentiment_page(mode):
             sentiment_emoji = "📊"
         
         with container:
-            # Create the news card using Streamlit components
+            # Create the news card with working link
             st.markdown(f"""
             <div style="border: 1px solid #444; border-radius: 8px; padding: 15px; margin: 10px 0; background-color: #1a1a1a;">
                 <h4 style="color: white; margin-top: 0;">{item['title']}</h4>
@@ -70,8 +70,19 @@ def news_sentiment_page(mode):
                         <span style="color: #888; font-size: 14px;">📰 {item['source']}</span>
                         <span style="color: #888; font-size: 14px; margin-left: 15px;">📊 Score: {item['score']:.2f}</span>
                     </div>
-                    <div style="background-color: #333; color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px;">
-                        {sentiment_emoji} {item['sentiment'].upper()}
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="background-color: #333; color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px;">
+                            {sentiment_emoji} {item['sentiment'].upper()}
+                        </div>
+                        <a href="{item.get('url', '#')}" target="_blank" style="
+                            background-color: #1a73e8; 
+                            color: white; 
+                            padding: 8px 12px; 
+                            border-radius: 5px; 
+                            text-decoration: none; 
+                            font-size: 12px;
+                            font-weight: bold;
+                        ">📖 Read More</a>
                     </div>
                 </div>
             </div>
