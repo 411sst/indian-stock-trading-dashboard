@@ -99,64 +99,6 @@ def news_sentiment_page(mode):
                 </div>
             </div>
         </div>
-    # Display news cards
-    st.subheader(f"Latest News ({len(filtered_news)})")
-    
-    # Layout configuration for news cards
-    for i, item in enumerate(filtered_news):
-        # Determine colors based on sentiment
-        if item['sentiment'] == 'positive':
-            bg_color = "#1f2937"  # Dark gray
-            border_color = "#10b981"  # Green
-            sentiment_color = "#10b981"
-            sentiment_bg = "#065f46"
-        elif item['sentiment'] == 'negative':
-            bg_color = "#1f2937"  # Dark gray
-            border_color = "#ef4444"  # Red
-            sentiment_color = "#ef4444"
-            sentiment_bg = "#7f1d1d"
-        else:
-            bg_color = "#1f2937"  # Dark gray
-            border_color = "#f59e0b"  # Yellow
-            sentiment_color = "#f59e0b"
-            sentiment_bg = "#78350f"
-        
-        # Create news card
-        st.markdown(f"""
-        <div style='
-            background-color: {bg_color}; 
-            border: 1px solid {border_color}; 
-            border-radius: 8px; 
-            padding: 20px; 
-            margin: 15px 0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        '>
-            <h4 style='
-                color: #ffffff; 
-                margin-top: 0; 
-                margin-bottom: 15px;
-                font-size: 18px;
-                line-height: 1.4;
-            '>{item['title']}</h4>
-            
-            <div style='display: flex; justify-content: space-between; align-items: center;'>
-                <div style='display: flex; align-items: center; gap: 15px;'>
-                    <span style='color: #9ca3af; font-size: 14px;'><strong>Source:</strong> {item['source']}</span>
-                    <span style='color: #9ca3af; font-size: 14px;'><strong>Score:</strong> {item['score']:.2f}</span>
-                </div>
-                <div style='
-                    background-color: {sentiment_bg}; 
-                    color: {sentiment_color}; 
-                    padding: 6px 12px; 
-                    border-radius: 20px; 
-                    font-weight: bold;
-                    font-size: 12px;
-                    text-transform: uppercase;
-                '>
-                    {item['sentiment']}
-                </div>
-            </div>
-        </div>
         """, unsafe_allow_html=True)
     
     # Sentiment Analysis Charts
