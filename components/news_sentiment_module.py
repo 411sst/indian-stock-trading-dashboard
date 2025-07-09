@@ -44,62 +44,38 @@ def news_sentiment_page(mode):
     # Display news cards
     st.subheader(f"Latest News ({len(filtered_news)})")
     
-    # Layout configuration for news cards
+    # Create news cards using Streamlit components instead of HTML
     for i, item in enumerate(filtered_news):
-        # Determine colors based on sentiment
-        if item['sentiment'] == 'positive':
-            bg_color = "#1f2937"  # Dark gray
-            border_color = "#10b981"  # Green
-            sentiment_color = "#10b981"
-            sentiment_bg = "#065f46"
-        elif item['sentiment'] == 'negative':
-            bg_color = "#1f2937"  # Dark gray
-            border_color = "#ef4444"  # Red
-            sentiment_color = "#ef4444"
-            sentiment_bg = "#7f1d1d"
-        else:
-            bg_color = "#1f2937"  # Dark gray
-            border_color = "#f59e0b"  # Yellow
-            sentiment_color = "#f59e0b"
-            sentiment_bg = "#78350f"
+        # Create a container for each news item
+        container = st.container()
         
-        # Create news card
-        st.markdown(f"""
-        <div style='
-            background-color: {bg_color}; 
-            border: 1px solid {border_color}; 
-            border-radius: 8px; 
-            padding: 20px; 
-            margin: 15px 0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        '>
-            <h4 style='
-                color: #ffffff; 
-                margin-top: 0; 
-                margin-bottom: 15px;
-                font-size: 18px;
-                line-height: 1.4;
-            '>{item['title']}</h4>
-            
-            <div style='display: flex; justify-content: space-between; align-items: center;'>
-                <div style='display: flex; align-items: center; gap: 15px;'>
-                    <span style='color: #9ca3af; font-size: 14px;'><strong>Source:</strong> {item['source']}</span>
-                    <span style='color: #9ca3af; font-size: 14px;'><strong>Score:</strong> {item['score']:.2f}</span>
-                </div>
-                <div style='
-                    background-color: {sentiment_bg}; 
-                    color: {sentiment_color}; 
-                    padding: 6px 12px; 
-                    border-radius: 20px; 
-                    font-weight: bold;
-                    font-size: 12px;
-                    text-transform: uppercase;
-                '>
-                    {item['sentiment']}
+        # Determine sentiment colors
+        if item['sentiment'] == 'positive':
+            sentiment_color = "🟢"
+            sentiment_emoji = "📈"
+        elif item['sentiment'] == 'negative':
+            sentiment_color = "🔴"
+            sentiment_emoji = "📉"
+        else:
+            sentiment_color = "🟡"
+            sentiment_emoji = "📊"
+        
+        with container:
+            # Create the news card using Streamlit components
+            st.markdown(f"""
+            <div style="border: 1px solid #444; border-radius: 8px; padding: 15px; margin: 10px 0; background-color: #1a1a1a;">
+                <h4 style="color: white; margin-top: 0;">{item['title']}</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                    <div>
+                        <span style="color: #888; font-size: 14px;">📰 {item['source']}</span>
+                        <span style="color: #888; font-size: 14px; margin-left: 15px;">📊 Score: {item['score']:.2f}</span>
+                    </div>
+                    <div style="background-color: #333; color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px;">
+                        {sentiment_emoji} {item['sentiment'].upper()}
+                    </div>
                 </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
     
     # Sentiment Analysis Charts
     st.markdown("---")
@@ -140,9 +116,9 @@ def news_sentiment_page(mode):
         
         st.markdown("#### How Sentiment Analysis Works")
         st.write("Our system uses natural language processing to analyze the sentiment of news articles. Here's how we classify them:")
-        st.write("- Positive: Articles with positive sentiment score above +0.3")
-        st.write("- Negative: Articles with negative sentiment score below -0.3")
-        st.write("- Neutral: Articles with sentiment score between -0.3 and +0.3")
+        st.write("- 📈 Positive: Articles with positive sentiment score above +0.3")
+        st.write("- 📉 Negative: Articles with negative sentiment score below -0.3")
+        st.write("- 📊 Neutral: Articles with sentiment score between -0.3 and +0.3")
         
         st.markdown("#### Sentiment Score Distribution")
         st.info("Histogram showing distribution of sentiment scores would appear here in a full implementation.")
