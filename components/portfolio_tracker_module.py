@@ -1,10 +1,18 @@
-# pages/portfolio_tracker.py
+# components/portfolio_tracker_module.py
 import yfinance as yf
 from utils.indian_stocks import INDIAN_STOCKS
 import streamlit as st
 import pandas as pd
 from utils.data_fetcher import calculate_portfolio_value
-from utils.portfolio_manager import load_sample_portfolio, add_to_portfolio, remove_from_portfolio, export_to_csv
+from utils.portfolio_manager import add_to_portfolio, remove_from_portfolio, export_to_csv
+
+def load_sample_portfolio():
+    """Load sample portfolio data"""
+    return [
+        {"symbol": "RELIANCE.NS", "quantity": 10, "buy_price": 2500, "buy_date": "2023-06-15"},
+        {"symbol": "TCS.NS", "quantity": 5, "buy_price": 3200, "buy_date": "2023-07-20"},
+        {"symbol": "INFY.NS", "quantity": 8, "buy_price": 1450, "buy_date": "2023-09-10"}
+    ]
 
 def portfolio_tracker_page(mode):
     st.header("Portfolio Tracker")
@@ -45,10 +53,21 @@ def portfolio_tracker_page(mode):
                     "buy_date": str(buy_date)
                 }
                 st.session_state.portfolio = add_to_portfolio(st.session_state.portfolio, new_entry)
-                st.success(f"Added {quantity} shares of {symbol} to your portfolio!")
+                st.success(f"Added {quantity} shares of {INDIAN_STOCKS[symbol]} to your portfolio!")
+                st.rerun()
     
     elif action == "Import CSV":
         st.subheader("Import Portfolio from CSV")
+        st.info("📄 Upload a CSV file with columns: symbol, quantity, buy_price, buy_date")
+        
+        # Show sample format
+        with st.expander("View Sample CSV Format"):
+            sample_df = pd.DataFrame([
+                {"symbol": "RELIANCE.NS", "quantity": 10, "buy_price": 2500, "buy_date": "2023-06-15"},
+                {"symbol": "TCS.NS", "quantity": 5, "buy_price": 3200, "buy_date": "2023-07-20"}
+            ])
+            st.dataframe(sample_df)
+        
         uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
         
         if uploaded_file is not None:
@@ -58,17 +77,18 @@ def portfolio_tracker_page(mode):
                 
                 if all(col in df.columns for col in required_columns):
                     st.session_state.portfolio = df.to_dict('records')
-                    st.success("Portfolio imported successfully!")
+                    st.success("✅ Portfolio imported successfully!")
+                    st.rerun()
                 else:
-                    st.error(f"CSV must contain these columns: {', '.join(required_columns)}")
+                    st.error(f"❌ CSV must contain these columns: {', '.join(required_columns)}")
             except Exception as e:
-                st.error(f"Error reading CSV file: {str(e)}")
+                st.error(f"❌ Error reading CSV file: {str(e)}")
     
     # View Portfolio
     st.subheader("Your Portfolio")
     
     if not st.session_state.portfolio:
-        st.info("Your portfolio is empty. Add some holdings to get started!")
+        st.info("📊 Your portfolio is empty. Add some holdings to get started!")
         return
     
     # Calculate portfolio value
@@ -98,7 +118,7 @@ def portfolio_tracker_page(mode):
             stock = yf.Ticker(symbol)
             current_prices[symbol] = stock.history(period="1d")['Close'][-1]
         except:
-            current_prices[symbol] = "N/A"
+            current_prices[symbol] = df[df['symbol'] == symbol]['buy_price'].iloc[0]
     
     # Add current price and P&L to DataFrame
     df['current_price'] = df['symbol'].map(current_prices)
@@ -107,27 +127,27 @@ def portfolio_tracker_page(mode):
     df['p_and_l'] = df['current_value'] - df['investment_value']
     df['return_percentage'] = (df['p_and_l'] / df['investment_value']) * 100
     
-    # Format numbers
-    df_display = df.copy()
-    df_display['buy_price'] = df_display['buy_price'].apply(lambda x: f"₹{x:.2f}")
-    df_display['current_price'] = df_display['current_price'].apply(lambda x: f"₹{x:.2f}" if isinstance(x, float) else x)
-    df_display['p_and_l'] = df_display['p_and_l'].apply(lambda x: f"₹{x:.2f}")
-    df_display['return_percentage'] = df_display['return_percentage'].apply(lambda x: f"{x:.2f}%")
-    
     # Display table with actions
-    for i, row in df_display.iterrows():
+    for i, row in df.iterrows():
         col1, col2, col3, col4, col5, col6, col7 = st.columns([3, 2, 2, 2, 2, 2, 1])
         
-        col1.text(row['symbol'])
-        col2.text(row['buy_price'])
-        col3.text(row['current_price'])
-        col4.text(row['p_and_l'])
-        col5.text(row['return_percentage'])
-        col6.text(row['quantity'])
-        
-        if col7.button("Delete", key=f"delete_{i}_{row['symbol']}"):
-            st.session_state.portfolio = remove_from_portfolio(st.session_state.portfolio, i)
-            st.experimental_rerun()
+        with col1:
+            st.write(INDIAN_STOCKS.get(row['symbol'], row['symbol']))
+        with col2:
+            st.write(f"₹{row['buy_price']:.2f}")
+        with col3:
+            st.write(f"₹{row['current_price']:.2f}")
+        with col4:
+            color = "🟢" if row['p_and_l'] >= 0 else "🔴"
+            st.write(f"{color} ₹{row['p_and_l']:.2f}")
+        with col5:
+            st.write(f"{row['return_percentage']:.1f}%")
+        with col6:
+            st.write(f"{row['quantity']}")
+        with col7:
+            if st.button("🗑️", key=f"delete_{i}_{row['symbol']}"):
+                st.session_state.portfolio = remove_from_portfolio(st.session_state.portfolio, i)
+                st.rerun()
     
     # Export Portfolio
     st.markdown("---")
@@ -135,7 +155,7 @@ def portfolio_tracker_page(mode):
     csv = export_to_csv(st.session_state.portfolio)
     
     st.download_button(
-        label="Download Portfolio as CSV",
+        label="📥 Download Portfolio as CSV",
         data=csv,
         file_name="my_portfolio.csv",
         mime="text/csv",
@@ -145,13 +165,13 @@ def portfolio_tracker_page(mode):
     st.markdown("---")
     st.subheader("Asset Allocation")
     
-    # Placeholder for pie chart (would require matplotlib or plotly)
-    st.info("Asset allocation visualization would appear here in a full implementation.")
+    # Placeholder for pie chart
+    st.info("📊 Asset allocation visualization will be added in the next update.")
     
     # Coming Soon Banner
     st.markdown("---")
     st.markdown("""
-    <div style='padding: 10px; background-color: #e6f7ff; border-left: 4px solid #1a73e8;'>
-        <strong>Coming Soon:</strong> Auto-sync with brokers functionality for automatic portfolio updates.
+    <div style='padding: 15px; background-color: #1f2937; border-left: 4px solid #3b82f6; border-radius: 5px;'>
+        <strong>🚀 Coming Soon:</strong> Auto-sync with brokers functionality for automatic portfolio updates.
     </div>
     """, unsafe_allow_html=True)
