@@ -123,7 +123,7 @@ def fetch_sector_performance():
 
 @st.cache_data(ttl=600)  # Increased cache time
 def fetch_stock_data(symbol, period='1mo'):
-    """Fetch historical data for a specific stock with retry logic"""
+    """Fetch historical data for a specific stock with enhanced error handling"""
     try:
         # Add delay before request
         time.sleep(random.uniform(0.5, 2))
@@ -132,8 +132,12 @@ def fetch_stock_data(symbol, period='1mo'):
         hist = stock.history(period=period)
         
         if hist.empty:
-            return None
+            raise ValueError("No data returned from Yahoo Finance")
             
+        # Check if we have enough data for analysis
+        if len(hist) < 20:
+            st.warning(f"Insufficient historical data for {symbol} to calculate all indicators")
+        
         # Calculate technical indicators
         hist['SMA20'] = ta.trend.sma_indicator(hist['Close'], window=20)
         hist['EMA50'] = ta.trend.ema_indicator(hist['Close'], window=50)
@@ -151,6 +155,7 @@ def fetch_stock_data(symbol, period='1mo'):
         macd = ta.trend.MACD(hist['Close'])
         hist['MACD'] = macd.macd()
         hist['MACD_signal'] = macd.macd_signal()
+        hist['MACD_diff'] = macd.macd_diff()
         
         # Volume moving average
         hist['Vol_MA'] = hist['Volume'].rolling(window=20).mean()
@@ -159,7 +164,33 @@ def fetch_stock_data(symbol, period='1mo'):
         
     except Exception as e:
         st.error(f"Error fetching data for {symbol}: {str(e)}")
-        return None
+        st.info("Using sample data for demonstration purposes.")
+        
+        # Return mock data if API fails
+        end_date = datetime.now()
+        dates = pd.date_range(end=end_date, periods=30, freq='B')
+        np.random.seed(42)  # For reproducibility
+        
+        mock_data = pd.DataFrame({
+            'Open': np.random.uniform(100, 200, size=30).round(2),
+            'High': np.random.uniform(100, 200, size=30).round(2),
+            'Low': np.random.uniform(100, 200, size=30).round(2),
+            'Close': np.random.uniform(100, 200, size=30).round(2),
+            'Volume': np.random.randint(100000, 1000000, size=30)
+        }, index=dates)
+        
+        # Add mock indicators
+        mock_data['SMA20'] = mock_data['Close'].rolling(window=20).mean()
+        mock_data['EMA50'] = mock_data['Close'].ewm(span=50).mean()
+        mock_data['RSI'] = 50 + np.random.uniform(-20, 20, size=30)
+        mock_data['MACD'] = np.random.uniform(-5, 5, size=30)
+        mock_data['MACD_signal'] = mock_data['MACD'] + np.random.uniform(-1, 1, size=30)
+        mock_data['BB_upper'] = mock_data['Close'] * 1.05
+        mock_data['BB_lower'] = mock_data['Close'] * 0.95
+        mock_data['BB_middle'] = mock_data['Close']
+        mock_data['Vol_MA'] = mock_data['Volume'].rolling(window=20).mean()
+        
+        return mock_data
 
 def analyze_technical_indicators(df):
     """Analyze technical indicators to generate signals"""
@@ -170,54 +201,67 @@ def analyze_technical_indicators(df):
     previous = df.iloc[-2]
     
     reasons = []
-    confidence = 50
+    buy_signals = 0
+    sell_signals = 0
     
     # RSI Analysis
     rsi = latest['RSI']
     if rsi < 30:
-        reasons.append(f"Oversold RSI(14)={rsi:.2f}")
-        confidence += 20
+        reasons.append(f"RSI(14)={rsi:.1f} [Oversold]")
+        buy_signals += 1
     elif rsi > 70:
-        reasons.append(f"Overbought RSI(14)={rsi:.2f}")
-        confidence += 20
+        reasons.append(f"RSI(14)={rsi:.1f} [Overbought]")
+        sell_signals += 1
     
     # MACD Analysis
     if latest['MACD'] > latest['MACD_signal'] and previous['MACD'] <= previous['MACD_signal']:
         reasons.append("MACD bullish crossover")
-        confidence += 15
+        buy_signals += 1
     elif latest['MACD'] < latest['MACD_signal'] and previous['MACD'] >= previous['MACD_signal']:
         reasons.append("MACD bearish crossover")
-        confidence += 15
+        sell_signals += 1
     
-    # Moving Average Crossover
-    if latest['SMA20'] > latest['EMA50'] and previous['SMA20'] <= previous['EMA50']:
-        reasons.append("SMA20 crossed above EMA50")
-        confidence += 10
-    elif latest['SMA20'] < latest['EMA50'] and previous['SMA20'] >= previous['EMA50']:
-        reasons.append("SMA20 crossed below EMA50")
-        confidence += 10
+    # Moving Average Analysis
+    if latest['Close'] > latest['SMA20'] and latest['SMA20'] > latest['EMA50']:
+        reasons.append("Price above moving averages")
+        buy_signals += 1
+    elif latest['Close'] < latest['SMA20'] and latest['SMA20'] < latest['EMA50']:
+        reasons.append("Price below moving averages")
+        sell_signals += 1
     
     # Volume Analysis
-    vol_ratio = latest['Volume'] / latest['Vol_MA']
+    vol_ratio = latest['Volume'] / latest['Vol_MA'] if latest['Vol_MA'] > 0 else 1
     if vol_ratio > 1.5:
         reasons.append(f"High volume ({vol_ratio:.1f}x average)")
-        confidence += 10
+        buy_signals += 0.5
     
-    # Determine overall signal
-    if len([r for r in reasons if "bullish" in r or "oversold" in r]) > len([r for r in reasons if "bearish" in r or "overbought" in r]):
+    # Bollinger Bands Analysis
+    if latest['Close'] < latest['BB_lower']:
+        reasons.append("Price below lower Bollinger Band")
+        buy_signals += 0.5
+    elif latest['Close'] > latest['BB_upper']:
+        reasons.append("Price above upper Bollinger Band")
+        sell_signals += 0.5
+    
+    # Determine signal and confidence
+    if buy_signals > sell_signals:
         signal = "BUY"
-        confidence = min(confidence, 90)
-    elif len([r for r in reasons if "bearish" in r or "overbought" in r]) > len([r for r in reasons if "bullish" in r or "oversold" in r]):
+        confidence = min(90, 50 + (buy_signals * 15))
+    elif sell_signals > buy_signals:
         signal = "SELL"
-        confidence = min(confidence, 90)
+        confidence = min(90, 50 + (sell_signals * 15))
     else:
         signal = "HOLD"
-        confidence = max(40, 100 - confidence)
+        confidence = 60
     
     return {
         "signal": signal,
-        "confidence": confidence,
-        "reasons": reasons
+        "confidence": int(confidence),
+        "reasons": reasons,
+        "rsi": rsi,
+        "macd_signal": "bullish" if latest['MACD'] > latest['MACD_signal'] else "bearish",
+        "volume_ratio": vol_ratio,
+        "trend": "uptrend" if latest['Close'] > latest['SMA20'] else "downtrend"
     }
 
 @st.cache_data(ttl=300)
@@ -416,4 +460,67 @@ def calculate_portfolio_value(portfolio):
         "total_value": total_value,
         "p_and_l": p_and_l,
         "return_percentage": return_percentage
+    }
+
+def fetch_market_movers():
+    """Fetch significant market movers with volume analysis"""
+    movers = []
+    sample_stocks = list(INDIAN_STOCKS.keys())[:15]  # Analyze more stocks
+    
+    for symbol in sample_stocks:
+        try:
+            stock = yf.Ticker(symbol)
+            hist = stock.history(period="5d")
+            
+            if len(hist) >= 2:
+                current_price = hist['Close'][-1]
+                prev_close = hist['Close'][-2]
+                change = ((current_price - prev_close) / prev_close) * 100
+                volume = hist['Volume'][-1]
+                avg_volume = hist['Volume'].mean()
+                volume_ratio = volume / avg_volume if avg_volume > 0 else 1
+                
+                if abs(change) > 2 or volume_ratio > 1.5:  # Significant move or volume
+                    movers.append({
+                        'symbol': symbol,
+                        'company': INDIAN_STOCKS[symbol],
+                        'change': change,
+                        'volume_ratio': volume_ratio,
+                        'price': current_price
+                    })
+        except:
+            continue
+    
+    return sorted(movers, key=lambda x: abs(x['change']), reverse=True)[:10]
+
+def get_market_sentiment_summary(news_data):
+    """Calculate overall market sentiment summary"""
+    if not news_data:
+        return {"overall": "neutral", "score": 0, "distribution": {}}
+    
+    sentiments = [item['sentiment'] for item in news_data]
+    scores = [item['score'] for item in news_data]
+    
+    # Calculate distribution
+    distribution = {
+        "positive": len([s for s in sentiments if s == "positive"]),
+        "negative": len([s for s in sentiments if s == "negative"]),
+        "neutral": len([s for s in sentiments if s == "neutral"])
+    }
+    
+    # Calculate overall sentiment
+    avg_score = sum(scores) / len(scores)
+    
+    if avg_score > 0.2:
+        overall = "positive"
+    elif avg_score < -0.2:
+        overall = "negative"
+    else:
+        overall = "neutral"
+    
+    return {
+        "overall": overall,
+        "score": avg_score,
+        "distribution": distribution,
+        "total_articles": len(news_data)
     }
