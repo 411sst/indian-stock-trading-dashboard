@@ -26,15 +26,23 @@ def market_overview_page(mode):
     # Indices
     index_data = fetch_index_data()
     
-    cols = st.columns(len(index_data))
-    for i, (ticker, data) in enumerate(index_data.items()):
-        with cols[i]:
-            st.metric(
-                label=f"{data['name']} ({ticker})",
-                value=f"₹{data['value']:.2f}",
-                delta=f"{data['percent_change']:.2f}% {'↑' if data['percent_change'] > 0 else '↓'}"
-            )
-    
+    if index_data:
+        cols = st.columns(len(index_data))
+        for i, (ticker, data) in enumerate(index_data.items()):
+            with cols[i]:
+                st.metric(
+                    label=f"{data['name']} ({ticker})",
+                    value=f"₹{data['value']:.2f}",
+                    delta=f"{data['percent_change']:.2f}% {'↑' if data['percent_change'] > 0 else '↓'}"
+                )
+    else:
+        st.warning("Unable to fetch index data due to rate limiting. Please try again later.")
+        # Show mock data
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("NIFTY 50", "₹25,400.00", "0.5%")
+        with col2:
+            st.metric("SENSEX", "₹83,500.00", "0.7%")    
     st.markdown("---")
     
     # Top Gainers and Losers
