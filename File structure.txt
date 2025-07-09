@@ -1,0 +1,18 @@
+indian-stock-trading-dashboard/
+├── app.py
+├── requirements.txt
+├── README.md
+├── sample_portfolio.csv
+├── components/
+│   ├── __init__.py
+│   ├── market_overview_module.py
+│   ├── stock_analysis_module.py
+│   ├── portfolio_tracker_module.py
+│   └── news_sentiment_module.py
+└── utils/
+    ├── __init__.py
+    ├── data_fetcher.py
+    ├── technical_analysis.py
+    ├── sentiment_analysis.py
+    ├── portfolio_manager.py
+    └── indian_stocks.py
