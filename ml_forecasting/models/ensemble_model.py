@@ -20,6 +20,182 @@ class EnsembleModel:
             'exponential_smoothing': 0.25
         }
     
+    def _moving_average_model(self, data, steps):
+        """Simple moving average prediction"""
+        try:
+            if len(data) < 5:
+                return np.full(steps, data.iloc[-1]), 0.4
+            
+            # Use different window sizes based on data length
+            window = min(20, max(5, len(data) // 10))
+            
+            # Calculate moving average
+            ma = data.rolling(window=window).mean().iloc[-1]
+            
+            # Add slight trend adjustment
+            recent_trend = (data.iloc[-1] - data.iloc[-min(5, len(data)-1)]) / min(5, len(data)-1)
+            
+            predictions = []
+            current_price = ma
+            
+            for i in range(steps):
+                # Add trend with diminishing effect
+                trend_effect = recent_trend * (0.95 ** i)
+                current_price = current_price + trend_effect
+                predictions.append(max(0.01, current_price))
+            
+            # Confidence based on data length and volatility
+            volatility = data.pct_change().std()
+            confidence = max(0.3, min(0.8, 0.6 - volatility))
+            
+            return np.array(predictions), confidence
+            
+        except Exception as e:
+            return np.full(steps, data.iloc[-1] if len(data) > 0 else 100), 0.3
+    
+    def _linear_trend_model(self, data, steps):
+        """Linear trend extrapolation"""
+        try:
+            if len(data) < 3:
+                return np.full(steps, data.iloc[-1]), 0.3
+            
+            # Use recent data for trend calculation
+            recent_period = min(30, len(data))
+            recent_data = data.tail(recent_period)
+            
+            # Calculate linear trend
+            x = np.arange(len(recent_data))
+            y = recent_data.values
+            
+            # Simple linear regression
+            if len(x) > 1:
+                slope = np.sum((x - np.mean(x)) * (y - np.mean(y))) / np.sum((x - np.mean(x)) ** 2)
+                intercept = np.mean(y) - slope * np.mean(x)
+            else:
+                slope = 0
+                intercept = y[0]
+            
+            # Generate predictions
+            predictions = []
+            last_x = len(recent_data) - 1
+            
+            for i in range(1, steps + 1):
+                pred_price = intercept + slope * (last_x + i)
+                predictions.append(max(0.01, pred_price))
+            
+            # Confidence based on trend strength and data fit
+            try:
+                fitted_values = intercept + slope * x
+                r_squared = 1 - np.sum((y - fitted_values) ** 2) / np.sum((y - np.mean(y)) ** 2)
+                confidence = max(0.3, min(0.8, 0.4 + r_squared * 0.4))
+            except:
+                confidence = 0.5
+            
+            return np.array(predictions), confidence
+            
+        except Exception as e:
+            return np.full(steps, data.iloc[-1] if len(data) > 0 else 100), 0.3
+    
+    def _seasonal_naive_model(self, data, steps):
+        """Seasonal naive approach with weekly patterns"""
+        try:
+            if len(data) < 7:
+                return np.full(steps, data.iloc[-1]), 0.4
+            
+            # Look for weekly patterns (5 trading days)
+            seasonal_period = 5
+            
+            predictions = []
+            for i in range(steps):
+                # Find corresponding day in previous periods
+                lookback_idx = -(seasonal_period - (i % seasonal_period))
+                
+                if abs(lookback_idx) <= len(data):
+                    seasonal_value = data.iloc[lookback_idx]
+                    
+                    # Add slight random walk
+                    noise = np.random.normal(0, data.pct_change().std() * 0.5)
+                    pred_price = seasonal_value * (1 + noise)
+                else:
+                    pred_price = data.iloc[-1]
+                
+                predictions.append(max(0.01, pred_price))
+            
+            # Confidence based on seasonal consistency
+            if len(data) >= seasonal_period * 2:
+                try:
+                    # Check seasonal correlation
+                    recent = data.tail(seasonal_period).values
+                    previous = data.tail(seasonal_period * 2).head(seasonal_period).values
+                    correlation = np.corrcoef(recent, previous)[0, 1]
+                    confidence = max(0.3, min(0.7, 0.4 + abs(correlation) * 0.3))
+                except:
+                    confidence = 0.4
+            else:
+                confidence = 0.4
+            
+            return np.array(predictions), confidence
+            
+        except Exception as e:
+            return np.full(steps, data.iloc[-1] if len(data) > 0 else 100), 0.3
+    
+    def _exponential_smoothing_model(self, data, steps):
+        """Simple exponential smoothing"""
+        try:
+            if len(data) < 3:
+                return np.full(steps, data.iloc[-1]), 0.4
+            
+            # Optimal alpha for exponential smoothing
+            alpha = 0.3  # Smoothing parameter
+            
+            # Calculate exponentially weighted average
+            smoothed_values = []
+            smoothed_values.append(data.iloc[0])
+            
+            for i in range(1, len(data)):
+                smoothed = alpha * data.iloc[i] + (1 - alpha) * smoothed_values[-1]
+                smoothed_values.append(smoothed)
+            
+            # Get last smoothed value
+            last_smoothed = smoothed_values[-1]
+            
+            # Add trend component
+            if len(data) >= 5:
+                recent_values = data.tail(5)
+                trend = (recent_values.iloc[-1] - recent_values.iloc[0]) / len(recent_values)
+            else:
+                trend = 0
+            
+            # Generate predictions
+            predictions = []
+            current_value = last_smoothed
+            
+            for i in range(steps):
+                # Apply dampened trend
+                trend_effect = trend * (0.9 ** i)
+                current_value = current_value + trend_effect
+                predictions.append(max(0.01, current_value))
+            
+            # Confidence based on smoothing effectiveness
+            try:
+                # Calculate prediction error on recent data
+                errors = []
+                for i in range(min(10, len(data) - 1)):
+                    idx = -(i + 2)
+                    actual = data.iloc[idx + 1]
+                    predicted = smoothed_values[idx]
+                    errors.append(abs((actual - predicted) / actual))
+                
+                avg_error = np.mean(errors) if errors else 0.1
+                confidence = max(0.3, min(0.8, 0.7 - avg_error))
+            except:
+                confidence = 0.5
+            
+            return np.array(predictions), confidence
+            
+        except Exception as e:
+            return np.full(steps, data.iloc[-1] if len(data) > 0 else 100), 0.3
+    
     def _calculate_dynamic_confidence(self, data, predictions, individual_confidences):
         """Calculate dynamic confidence based on multiple factors"""
         try:
@@ -246,3 +422,22 @@ class EnsembleModel:
             'symbol': symbol or 'Unknown',
             'volatility': 0.02
         }
+    
+    def validate_prediction(self, prediction_result):
+        """Validate prediction results"""
+        try:
+            checks = {
+                'has_predictions': len(prediction_result.get('predictions', [])) > 0,
+                'valid_confidence': 0.0 <= prediction_result.get('confidence', 0) <= 1.0,
+                'valid_prices': prediction_result.get('current_price', 0) > 0,
+                'valid_change': abs(prediction_result.get('price_change_percent', 0)) < 100,
+                'has_method': bool(prediction_result.get('method', '')),
+                'valid_volatility': 0.0 <= prediction_result.get('volatility', 0) <= 1.0
+            }
+            
+            is_valid = all(checks.values())
+            
+            return checks, is_valid
+            
+        except Exception as e:
+            return {'error': str(e)}, False
