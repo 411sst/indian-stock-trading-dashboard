@@ -595,364 +595,237 @@ elif selected_nav == "🤖 ML Predictions" and ENHANCED_FEATURES:
                             else:
                                 st.metric("📊 Data Points", f"{len(close_data)}")
                         
-                        # === CHART GENERATION (FIXED) ===
+# === CHART GENERATION (FIXED) ===
                         st.subheader("📈 Price Prediction Visualization")
                         
-                        # Debug info
-                        with st.expander("🔧 Chart Debug Info", expanded=False):
-                            st.write(f"• Historical data: {len(close_data)} points")
-                            st.write(f"• Predictions: {len(prediction_result.get('predictions', []))} points")
-                            st.write(f"• Current price: ₹{current_price:.2f}")
-                            st.write(f"• Predicted price: ₹{predicted_price:.2f}")
-                        
                         try:
-                            # Chart data preparation
-                            historical_data = close_data.tail(60)
+                            # Get historical data for chart
+                            historical_data = close_data.tail(60)  # Last 60 days
                             predictions = prediction_result.get('predictions', [])
                             
+                            # Validate chart data
                             if len(predictions) == 0:
                                 st.error("❌ No predictions available for chart")
+                                # Show data table instead
+                                st.info("📊 Showing prediction summary instead")
+                                summary_data = {
+                                    'Current Price': f"₹{current_price:.2f}",
+                                    'Predicted Price': f"₹{predicted_price:.2f}",
+                                    'Expected Change': f"{price_change:+.1f}%",
+                                    'Confidence': f"{confidence:.1%}",
+                                    'Method': prediction_result.get('method', 'Ensemble')
+                                }
+                                st.json(summary_data)
                             else:
-                                # Ensure correct data types
+                                # Ensure predictions is a proper numpy array
                                 predictions = np.array(predictions).flatten()
+                                predictions = predictions[~np.isnan(predictions)]  # Remove NaN
+                                predictions = predictions[~np.isinf(predictions)]  # Remove Inf
                                 
-                                # Generate dates
-                                pred_dates = pd.date_range(
-                                    start=historical_data.index[-1] + timedelta(days=1),
-                                    periods=len(predictions),
-                                    freq='B'
-                                )
-                                
-                                # Create chart
-                                fig = go.Figure()
-                                
-                                # Historical data
-                                fig.add_trace(go.Scatter(
-                                    x=historical_data.index,
-                                    y=historical_data.values,
-                                    mode='lines',
-                                    name='Historical Prices',
-                                    line=dict(color='#3b82f6', width=2),
-                                    hovertemplate='Historical<br>%{x}<br>₹%{y:,.2f}<extra></extra>'
-                                ))
-                                
-                                # Predictions
-                                fig.add_trace(go.Scatter(
-                                    x=pred_dates,
-                                    y=predictions,
-                                    mode='lines+markers',
-                                    name=f'AI Predictions ({prediction_period})',
-                                    line=dict(color='#10b981', width=3, dash='dot'),
-                                    marker=dict(size=8, color='#10b981'),
-                                    hovertemplate='Prediction<br>%{x}<br>₹%{y:,.2f}<extra></extra>'
-                                ))
-                                
-                                # Connection line
-                                fig.add_trace(go.Scatter(
-                                    x=[historical_data.index[-1], pred_dates[0]],
-                                    y=[historical_data.iloc[-1], predictions[0]],
-                                    mode='lines',
-                                    line=dict(color='#f59e0b', width=2, dash='dash'),
-                                    showlegend=False,
-                                    hoverinfo='skip'
-                                ))
-                                
-                                # Confidence bands
-                                if confidence > 0.6:
+                                if len(predictions) == 0:
+                                    st.error("❌ All predictions are invalid")
+                                else:
+                                    # Generate future dates for predictions
                                     try:
-                                        band_width = (1 - confidence) * 0.25
-                                        upper_band = predictions * (1 + band_width)
-                                        lower_band = predictions * (1 - band_width)
-                                        
-                                        fig.add_trace(go.Scatter(
-                                            x=pred_dates,
-                                            y=upper_band,
-                                            fill=None,
-                                            mode='lines',
-                                            line_color='rgba(16,185,129,0)',
-                                            showlegend=False
-                                        ))
-                                        
-                                        fig.add_trace(go.Scatter(
-                                            x=pred_dates,
-                                            y=lower_band,
-                                            fill='tonexty',
-                                            mode='lines',
-                                            line_color='rgba(16,185,129,0)',
-                                            name=f'Confidence Band ({confidence:.0%})',
-                                            fillcolor='rgba(16,185,129,0.15)'
-                                        ))
+                                        last_date = historical_data.index[-1]
+                                        pred_dates = pd.bdate_range(
+                                            start=last_date + pd.Timedelta(days=1),
+                                            periods=len(predictions)
+                                        )
                                     except:
-                                        pass
-                                
-                                # Update layout
-                                fig.update_layout(
-                                    title=f"🤖 AI Prediction: {INDIAN_STOCKS.get(selected_stock, selected_stock)}",
-                                    xaxis_title="Date",
-                                    yaxis_title="Price (₹)",
-                                    template='plotly_dark',
-                                    height=600,
-                                    hovermode='x unified',
-                                    showlegend=True,
-                                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-                                )
-                                
-                                # Display chart
-                                st.plotly_chart(fig, use_container_width=True)
-                                st.success(f"✅ Chart: {len(historical_data)} historical + {len(predictions)} predicted points")
+                                        pred_dates = pd.date_range(
+                                            start=datetime.now() + timedelta(days=1),
+                                            periods=len(predictions),
+                                            freq='D'
+                                        )
+                                    
+                                    # Create the chart
+                                    fig = go.Figure()
+                                    
+                                    # Add historical data
+                                    fig.add_trace(go.Scatter(
+                                        x=historical_data.index,
+                                        y=historical_data.values,
+                                        mode='lines',
+                                        name='Historical Prices',
+                                        line=dict(color='#3b82f6', width=2),
+                                        hovertemplate='Historical<br>Date: %{x}<br>Price: ₹%{y:,.2f}<extra></extra>'
+                                    ))
+                                    
+                                    # Add predictions
+                                    fig.add_trace(go.Scatter(
+                                        x=pred_dates,
+                                        y=predictions,
+                                        mode='lines+markers',
+                                        name=f'AI Predictions ({prediction_period})',
+                                        line=dict(color='#10b981', width=3, dash='dot'),
+                                        marker=dict(size=6, color='#10b981'),
+                                        hovertemplate='Prediction<br>Date: %{x}<br>Price: ₹%{y:,.2f}<extra></extra>'
+                                    ))
+                                    
+                                    # Add connection line between historical and predictions
+                                    if len(historical_data) > 0 and len(predictions) > 0:
+                                        fig.add_trace(go.Scatter(
+                                            x=[historical_data.index[-1], pred_dates[0]],
+                                            y=[historical_data.iloc[-1], predictions[0]],
+                                            mode='lines',
+                                            line=dict(color='#f59e0b', width=2, dash='dash'),
+                                            showlegend=False,
+                                            hoverinfo='skip'
+                                        ))
+                                    
+                                    # Add confidence bands if confidence is high enough
+                                    if confidence > 0.6 and len(predictions) > 1:
+                                        try:
+                                            uncertainty = (1 - confidence) * 0.15  # Max 15% band
+                                            upper_band = predictions * (1 + uncertainty)
+                                            lower_band = predictions * (1 - uncertainty)
+                                            
+                                            # Upper confidence bound
+                                            fig.add_trace(go.Scatter(
+                                                x=pred_dates,
+                                                y=upper_band,
+                                                fill=None,
+                                                mode='lines',
+                                                line_color='rgba(16,185,129,0)',
+                                                showlegend=False,
+                                                hoverinfo='skip'
+                                            ))
+                                            
+                                            # Lower confidence bound
+                                            fig.add_trace(go.Scatter(
+                                                x=pred_dates,
+                                                y=lower_band,
+                                                fill='tonexty',
+                                                mode='lines',
+                                                line_color='rgba(16,185,129,0)',
+                                                name=f'Confidence Band ({confidence:.0%})',
+                                                fillcolor='rgba(16,185,129,0.2)',
+                                                hovertemplate='Confidence Band<br>Date: %{x}<br>Range: ₹%{y:,.2f}<extra></extra>'
+                                            ))
+                                        except Exception as band_error:
+                                            # Don't fail the entire chart for confidence bands
+                                            pass
+                                    
+                                    # Customize layout
+                                    fig.update_layout(
+                                        title=f"🤖 AI Prediction: {INDIAN_STOCKS.get(selected_stock, selected_stock)}",
+                                        xaxis_title="Date",
+                                        yaxis_title="Price (₹)",
+                                        template='plotly_dark',
+                                        height=600,
+                                        hovermode='x unified',
+                                        showlegend=True,
+                                        legend=dict(
+                                            orientation="h", 
+                                            yanchor="bottom", 
+                                            y=1.02, 
+                                            xanchor="right", 
+                                            x=1
+                                        ),
+                                        xaxis=dict(
+                                            showgrid=True,
+                                            gridcolor='rgba(128,128,128,0.2)',
+                                            showline=True,
+                                            linecolor='rgba(128,128,128,0.5)'
+                                        ),
+                                        yaxis=dict(
+                                            showgrid=True,
+                                            gridcolor='rgba(128,128,128,0.2)',
+                                            showline=True,
+                                            linecolor='rgba(128,128,128,0.5)',
+                                            tickformat='₹,.0f'
+                                        ),
+                                        plot_bgcolor='rgba(0,0,0,0)',
+                                        paper_bgcolor='rgba(0,0,0,0)'
+                                    )
+                                    
+                                    # Display the chart
+                                    st.plotly_chart(fig, use_container_width=True)
+                                    
+                                    # Success message with details
+                                    st.success(f"✅ Chart Generated: {len(historical_data)} historical + {len(predictions)} predicted points")
+                                    
+                                    # Chart statistics
+                                    with st.expander("📊 Chart Statistics", expanded=False):
+                                        col1, col2, col3 = st.columns(3)
+                                        with col1:
+                                            st.metric("Historical Points", len(historical_data))
+                                        with col2:
+                                            st.metric("Prediction Points", len(predictions))
+                                        with col3:
+                                            st.metric("Price Range", f"₹{min(min(historical_data), min(predictions)):.0f} - ₹{max(max(historical_data), max(predictions)):.0f}")
+                                        
+                                        st.write("**Data Quality:**")
+                                        st.write(f"• Historical data: {len(historical_data)} trading days")
+                                        st.write(f"• Prediction horizon: {len(predictions)} days")
+                                        st.write(f"• Confidence level: {confidence:.1%}")
+                                        st.write(f"• Expected change: {price_change:+.1f}%")
                         
                         except Exception as chart_error:
-                            st.error(f"❌ Chart failed: {str(chart_error)}")
+                            st.error(f"❌ Chart generation failed: {str(chart_error)}")
                             
-                            # Fallback table
+                            # Comprehensive fallback - show prediction table
                             try:
                                 predictions = prediction_result.get('predictions', [])
                                 if len(predictions) > 0:
-                                    st.info("📊 Prediction Table (Chart Fallback)")
+                                    st.info("📊 Showing Prediction Table (Chart Fallback)")
+                                    
+                                    # Create prediction table
                                     pred_df = pd.DataFrame({
                                         'Day': range(1, len(predictions) + 1),
                                         'Predicted Price': [f"₹{p:.2f}" for p in predictions],
-                                        'Change %': [f"{((p-current_price)/current_price)*100:+.1f}%" for p in predictions]
+                                        'Change from Current': [f"{((p-current_price)/current_price)*100:+.1f}%" for p in predictions],
+                                        'Absolute Change': [f"₹{p-current_price:+.2f}" for p in predictions]
                                     })
-                                    st.dataframe(pred_df, use_container_width=True)
-                            except:
-                                st.error("❌ Both chart and table failed")
-                        
-                        # === RISK ANALYSIS DASHBOARD ===
-                        if show_risk_metrics and risk_metrics:
-                            st.subheader("⚖️ Risk Analysis Dashboard")
-                            
-                            risk_cols = st.columns([1, 2])
-                            
-                            with risk_cols[0]:
-                                # Risk Score Display
-                                risk_score = risk_metrics.get('risk_score', 50)
+                                    
+                                    st.dataframe(pred_df, use_container_width=True, hide_index=True)
+                                    
+                                    # Summary statistics
+                                    col1, col2, col3 = st.columns(3)
+                                    with col1:
+                                        st.metric("Highest Prediction", f"₹{max(predictions):.2f}")
+                                    with col2:
+                                        st.metric("Lowest Prediction", f"₹{min(predictions):.2f}")
+                                    with col3:
+                                        st.metric("Average Prediction", f"₹{np.mean(predictions):.2f}")
                                 
-                                if risk_score < 40:
-                                    risk_level = "Low Risk"
-                                    risk_color = "#10b981"
-                                elif risk_score < 70:
-                                    risk_level = "Medium Risk"
-                                    risk_color = "#f59e0b"
                                 else:
-                                    risk_level = "High Risk"
-                                    risk_color = "#ef4444"
+                                    st.warning("⚠️ No prediction data available")
+                                    
+                            except Exception as fallback_error:
+                                st.error(f"❌ Both chart and table generation failed: {str(fallback_error)}")
                                 
-                                st.markdown(f"""
-                                <div style="text-align: center; padding: 20px; background-color: {risk_color}22; 
-                                           border: 2px solid {risk_color}; border-radius: 10px;">
-                                    <h2 style="color: {risk_color}; margin: 0;">{risk_score}/100</h2>
-                                    <p style="color: {risk_color}; margin: 5px 0; font-weight: bold;">{risk_level}</p>
-                                </div>
-                                """, unsafe_allow_html=True)
+                                # Final fallback - show basic info
+                                st.info("📋 Basic Prediction Summary")
+                                basic_info = {
+                                    "Current Price": f"₹{current_price:.2f}",
+                                    "Predicted Price": f"₹{predicted_price:.2f}",
+                                    "Expected Change": f"{price_change:+.1f}%",
+                                    "AI Confidence": f"{confidence:.1%}",
+                                    "Analysis Method": prediction_result.get('method', 'Ensemble'),
+                                    "Data Points Used": len(close_data)
+                                }
                                 
-                                # Try to create risk gauge
-                                try:
-                                    gauge_fig = create_risk_dashboard(risk_metrics)
-                                    if gauge_fig:
-                                        st.plotly_chart(gauge_fig, use_container_width=True)
-                                except Exception as gauge_error:
-                                    st.caption(f"Gauge display issue: {str(gauge_error)}")
+                                for key, value in basic_info.items():
+                                    st.write(f"**{key}:** {value}")
                             
-                            with risk_cols[1]:
-                                # Risk Metrics Table
-                                st.markdown("**📊 Risk Breakdown**")
+                            # Debug information
+                            with st.expander("🔧 Debug Information", expanded=False):
+                                st.write("**Error Details:**")
+                                st.code(str(chart_error))
                                 
-                                var_data = risk_metrics.get('var_metrics', {})
-                                if var_data:
-                                    st.write("**Value at Risk (VaR 95%):**")
-                                    st.write(f"• 1 Day: {var_data.get('var_1d', 0)*100:.1f}%")
-                                    st.write(f"• 5 Days: {var_data.get('var_5d', 0)*100:.1f}%")
-                                    st.write(f"• 10 Days: {var_data.get('var_10d', 0)*100:.1f}%")
+                                st.write("**Troubleshooting Steps:**")
+                                st.write("1. Check internet connection")
+                                st.write("2. Try a different stock (RELIANCE.NS, TCS.NS)")
+                                st.write("3. Reduce prediction period to 1 week")
+                                st.write("4. Refresh the page and try again")
                                 
-                                vol_regime = risk_metrics.get('volatility_regime', {})
-                                if vol_regime:
-                                    regime = vol_regime.get('regime', 'normal')
-                                    st.write(f"**Volatility Regime:** {regime.replace('_', ' ').title()}")
-                                    st.write(f"• Current: {vol_regime.get('current_vol', 0)*100:.1f}%")
-                                    st.write(f"• Historical: {vol_regime.get('historical_vol', 0)*100:.1f}%")
-                            
-                            # Stress Test
-                            if stress_testing:
-                                st.markdown("**🔥 Stress Test Results**")
-                                
-                                stress_data = risk_metrics.get('stress_scenarios', {})
-                                if stress_data and 'error' not in stress_data:
-                                    try:
-                                        # Create stress test chart
-                                        stress_fig = create_stress_test_chart(stress_data, current_price)
-                                        if stress_fig:
-                                            st.plotly_chart(stress_fig, use_container_width=True)
-                                        else:
-                                            # Fallback stress test table
-                                            stress_df = pd.DataFrame([
-                                                {
-                                                    'Scenario': name.replace('_', ' ').title(),
-                                                    'Final Price': f"₹{data['final_price']:,.2f}",
-                                                    'Return': f"{data['total_return']:+.1f}%"
-                                                }
-                                                for name, data in stress_data.items()
-                                                if isinstance(data, dict) and 'total_return' in data
-                                            ])
-                                            st.dataframe(stress_df, use_container_width=True, hide_index=True)
-                                    except Exception as stress_error:
-                                        st.info(f"Stress test visualization issue: {str(stress_error)}")
-                                else:
-                                    st.info("Stress test data not available")
-                        
-                        # === AI ANALYSIS SUMMARY (FIXED - NO RAW HTML) ===
-                        st.subheader("🤖 AI Analysis Summary")
-                        
-                        # Summary using Streamlit components (no raw HTML)
-                        summary_col1, summary_col2 = st.columns(2)
-                        
-                        with summary_col1:
-                            st.markdown("**🎯 Prediction Summary**")
-                            direction = "increase" if price_change > 0 else "decrease"
-                            strength = "strong" if abs(price_change) > 5 else "moderate" if abs(price_change) > 2 else "slight"
-                            
-                            st.write(f"• Expected {direction}: {abs(price_change):.1f}% ({strength})")
-                            st.write(f"• AI confidence: {confidence:.1%}")
-                            st.write(f"• Method: {prediction_result.get('method', 'Ensemble')}")
-                            st.write(f"• Data quality: {'Good' if len(close_data) > 100 else 'Limited'}")
-                        
-                        with summary_col2:
-                            st.markdown("**🔧 Technical Details**")
-                            st.write(f"• Data points: {len(close_data)} trading days")
-                            st.write(f"• Volatility: {prediction_result.get('volatility', 0):.3f}")
-                            st.write(f"• Risk profile: {risk_adjustment}")
-                            st.write(f"• Analysis level: {analysis_depth}")
-                        
-                        # Investment Recommendation
-                        st.markdown("**🎯 Investment Recommendation**")
-                        
-                        if price_change > 3:
-                            st.success(f"🟢 **BULLISH SIGNAL** - Consider position (Confidence: {confidence:.1%})")
-                        elif price_change < -3:
-                            st.error(f"🔴 **BEARISH SIGNAL** - Exercise caution (Confidence: {confidence:.1%})")
-                        else:
-                            st.info(f"🟡 **NEUTRAL SIGNAL** - Hold position (Confidence: {confidence:.1%})")
-                        
-                        # === MODEL COMPONENTS (FIXED - NO RAW HTML) ===
-                        if show_components and 'individual_predictions' in prediction_result:
-                            st.subheader("🔍 Model Components Analysis")
-                            
-                            components = prediction_result['individual_predictions']
-                            confidences = prediction_result.get('individual_confidences', {})
-                            
-                            if components:
-                                comp_cols = st.columns(min(len(components), 4))
-                                
-                                for i, (model_name, preds) in enumerate(components.items()):
-                                    if i < len(comp_cols):
-                                        with comp_cols[i]:
-                                            try:
-                                                final_pred = preds[-1] if len(preds) > 0 else current_price
-                                                change = ((final_pred - current_price) / current_price) * 100 if current_price != 0 else 0
-                                                conf = confidences.get(model_name, 0.5)
-                                                
-                                                st.markdown(f"**{model_name.replace('_', ' ').title()}**")
-                                                st.metric("Prediction", f"₹{final_pred:.2f}", f"{change:+.1f}%")
-                                                st.caption(f"Confidence: {conf:.1%}")
-                                                
-                                            except Exception:
-                                                st.error(f"Error: {model_name}")
-                        
-                        # === TRADING SIGNALS (FIXED - NO RAW HTML) ===
-                        st.subheader("🎯 Trading Signals")
-                        
-                        signal_cols = st.columns(3)
-                        
-                        with signal_cols[0]:
-                            st.markdown("**📊 Price Signal**")
-                            if abs(price_change) > 5:
-                                if price_change > 0:
-                                    st.success("📈 **Strong Bullish**")
-                                else:
-                                    st.error("📉 **Strong Bearish**")
-                            elif abs(price_change) > 2:
-                                if price_change > 0:
-                                    st.info("📈 **Moderate Bullish**")
-                                else:
-                                    st.warning("📉 **Moderate Bearish**")
-                            else:
-                                st.info("📊 **Neutral**")
-                            st.caption(f"Expected: {abs(price_change):.1f}% move")
-                        
-                        with signal_cols[1]:
-                            st.markdown("**🎯 Conviction**")
-                            if confidence > 0.8:
-                                st.success("🟢 **High Conviction**")
-                            elif confidence > 0.6:
-                                st.info("🟡 **Medium Conviction**")
-                            else:
-                                st.warning("🔴 **Low Conviction**")
-                            st.caption(f"AI Confidence: {confidence:.1%}")
-                        
-                        with signal_cols[2]:
-                            st.markdown("**⚖️ Risk Level**")
-                            if risk_metrics:
-                                risk_score = risk_metrics.get('risk_score', 50)
-                                if risk_score < 40:
-                                    st.success("🟢 **Low Risk**")
-                                elif risk_score < 70:
-                                    st.warning("🟡 **Medium Risk**")
-                                else:
-                                    st.error("🔴 **High Risk**")
-                                st.caption(f"Risk Score: {risk_score}/100")
-                            else:
-                                st.info("🟡 **Medium Risk**")
-                        
-                        # === WARNINGS AND DISCLAIMERS ===
-                        st.markdown("---")
-                        
-                        # Dynamic warnings
-                        warnings = []
-                        if confidence < confidence_threshold:
-                            warnings.append(f"⚠️ Low confidence ({confidence:.1%})")
-                        if abs(price_change) > 10:
-                            warnings.append("⚠️ High volatility predicted")
-                        if risk_metrics and risk_metrics.get('risk_score', 50) > 75:
-                            warnings.append("⚠️ High risk detected")
-                        
-                        if warnings:
-                            st.warning("**Risk Warnings:**\n" + "\n".join(warnings))
-                        
-                        # Final disclaimer
-                        st.info("""
-                        **📢 Disclaimer:** These predictions are for educational purposes only. 
-                        Not financial advice. Always consult qualified advisors before investing.
-                        """)
-                        
-                        # === DEBUG SECTION ===
-                        with st.expander("🔧 Debug Information", expanded=False):
-                            st.write("**Confidence Factors:**")
-                            conf_factors = prediction_result.get('confidence_factors', {})
-                            for key, value in conf_factors.items():
-                                st.write(f"• {key}: {value}")
-                            
-                            st.write("**Risk Score Components:**")
-                            if risk_metrics and 'risk_components' in risk_metrics:
-                                for key, value in risk_metrics['risk_components'].items():
-                                    st.write(f"• {key}: {value:.1f}")
-                            
-                            st.write("**Prediction Data:**")
-                            st.write(f"• Predictions length: {len(prediction_result.get('predictions', []))}")
-                            st.write(f"• Current price: ₹{current_price:.2f}")
-                            st.write(f"• Final confidence: {confidence:.3f}")
-                            st.write(f"• Final risk score: {risk_metrics.get('risk_score', 'N/A') if risk_metrics else 'N/A'}")
-
-            except Exception as e:
-                st.error(f"❌ Analysis failed: {str(e)}")
-                
-                with st.expander("🔧 Error Details"):
-                    st.code(str(e))
-                    
-                    st.markdown("**Troubleshooting:**")
-                    st.write("1. Try a different stock (RELIANCE.NS, TCS.NS)")
-                    st.write("2. Reduce prediction period to 1 week")
-                    st.write("3. Check internet connection")
-                    st.write("4. Wait 1-2 minutes and retry")              
+                                st.write("**Data Availability:**")
+                                st.write(f"• Historical data points: {len(close_data)}")
+                                st.write(f"• Prediction data: {len(prediction_result.get('predictions', []))}")
+                                st.write(f"• Current price: ₹{current_price:.2f}")
+                                st.write(f"• Confidence: {confidence:.3f}")
 
 elif selected_nav == "⚙️ User Settings" and ENHANCED_FEATURES and st.session_state.logged_in:
     st.title("⚙️ User Settings & Preferences")
