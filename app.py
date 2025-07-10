@@ -703,6 +703,7 @@ elif selected_nav == "⚙️ User Settings" and ENHANCED_FEATURES and st.session
                 "Default Trading Mode",
                 ["Beginner", "Pro", "Expert"],
                 index=["Beginner", "Pro", "Expert"].index(user.get('default_mode', 'Beginner'))
+            )
         with col2:
             email_notifications = st.checkbox("Email Notifications", value=user.get('email_notifications', True))
             auto_refresh = st.checkbox("Auto-refresh Data", value=True)
