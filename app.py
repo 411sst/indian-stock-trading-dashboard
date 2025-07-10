@@ -1045,11 +1045,17 @@ elif selected_nav == "🤖 ML Predictions" and ENHANCED_FEATURES:
                         st.markdown("• 📊 Review analysis weekly")
                         st.markdown("• 📈 Track actual vs predicted performance")
                         
+# ... [the rest of your code up to the Export Results section remains unchanged]
+
                         # Export Results
                         st.markdown("---")
                         st.subheader("📥 Export Analysis Results")
-                        
+
                         # Prepare export data
+                        import re
+                        recommendations_str = '; '.join(
+                            [re.sub(r"^[🟢🟡🔴⚡📈📉 ]+", "", rec) for rec in recommendations]
+                        )
                         export_data = {
                             'Analysis Date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                             'Stock Symbol': selected_stock,
@@ -1062,22 +1068,71 @@ elif selected_nav == "🤖 ML Predictions" and ENHANCED_FEATURES:
                             'Analysis Method': prediction_result.get('method', 'Ensemble'),
                             'Prediction Period': prediction_period,
                             'Data Points Used': len(close_data),
-                            'Recommendations': '; '.join([rec.replace('🟢 ', '').replace('🟡 ', '').replace('🔴 ', '').replace('⚡ ', '').replace('📈 ', '').replace('📉 ', '') for rec in recommendations])
+                            'Recommendations': recommendations_str
                         }
-                        
+
                         export_df = pd.DataFrame([export_data])
                         csv_data = export_df.to_csv(index=False)
-                        
+
                         col1, col2 = st.columns(2)
                         with col1:
                             st.download_button(
-                    label="📥 Download Watchlist CSV",
-                    data=csv,
-                    file_name=f"watchlist_{user['username']}_{datetime.now().strftime('%Y%m%d')}.csv",
-                    mime="text/csv"
-                )
-            else:
-                st.warning("No watchlist data to export")
+                                label="📄 Download Analysis Report (CSV)",
+                                data=csv_data,
+                                file_name=f"AI_Analysis_{selected_stock}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                                mime="text/csv"
+                            )
+
+                        with col2:
+                            # JSON export for advanced users
+                            json_data = {
+                                'analysis_metadata': export_data,
+                                'predictions': prediction_result.get('predictions', []).tolist()
+                                    if isinstance(prediction_result.get('predictions', []), np.ndarray)
+                                    else prediction_result.get('predictions', []),
+                                'risk_metrics': risk_metrics if risk_metrics else {},
+                                'model_performance': {
+                                    'confidence': confidence,
+                                    'validation_passed': is_valid,
+                                    'individual_models': prediction_result.get('individual_confidences', {})
+                                }
+                            }
+
+                            import json
+                            json_str = json.dumps(json_data, indent=2, default=str)
+
+                            st.download_button(
+                                label="📊 Download Full Data (JSON)",
+                                data=json_str,
+                                file_name=f"AI_Analysis_Full_{selected_stock}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                                mime="application/json"
+                            )
+
+                        # Final disclaimer
+                        st.markdown("---")
+                        st.warning("⚠️ **Important Disclaimer:** This analysis is for educational purposes only and should not be considered as financial advice. Always consult with qualified financial professionals before making investment decisions.")
+
+            except Exception as e:
+                st.error(f"❌ Analysis failed: {str(e)}")
+                st.info("🔄 Please try again or contact support if the issue persists.")
+
+                # Debug information for troubleshooting
+                with st.expander("🔧 Troubleshooting Information"):
+                    st.write("**Error Details:**")
+                    st.code(str(e))
+
+                    st.write("**Possible Solutions:**")
+                    st.write("1. Check your internet connection")
+                    st.write("2. Try a different stock symbol")
+                    st.write("3. Reduce the prediction period")
+                    st.write("4. Refresh the page and try again")
+
+                    st.write("**System Information:**")
+                    st.write(f"• Enhanced Features: {ENHANCED_FEATURES}")
+                    st.write(f"• User Logged In: {st.session_state.logged_in}")
+                    st.write(f"• Selected Stock: {selected_stock}")
+                    st.write(f"• Prediction Steps: {prediction_steps}")
+
     
     # Account Management
     st.subheader("🔐 Account Management")
