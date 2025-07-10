@@ -1,18 +1,129 @@
 indian-stock-trading-dashboard/
-├── app.py
-├── requirements.txt
-├── README.md
-├── sample_portfolio.csv
-├── components/
+├── app.py                                    # Main Streamlit application (Enhanced with Auth & ML)
+├── requirements.txt                          # Python dependencies (Updated with ML & Auth libs)
+├── README.md                                # Project documentation (Enhanced with new features)
+├── sample_portfolio.csv                     # Sample portfolio data
+├── .gitignore                               # Git ignore file
+├── LICENSE                                  # MIT License
+├── authentication/                          # 🔐 User Authentication System ✨ NEW
 │   ├── __init__.py
-│   ├── market_overview_module.py
-│   ├── stock_analysis_module.py
-│   ├── portfolio_tracker_module.py
-│   └── news_sentiment_module.py
-└── utils/
-    ├── __init__.py
-    ├── data_fetcher.py
-    ├── technical_analysis.py
-    ├── sentiment_analysis.py
-    ├── portfolio_manager.py
-    └── indian_stocks.py
+│   ├── auth_handler.py                      # Core authentication logic with SQLite
+│   ├── validators.py                        # Input validation utilities
+│   ├── session_manager.py                  # Session management (Optional)
+│   └── user_database.py                    # User data operations (Optional)
+├── ml_forecasting/                          # 🤖 Machine Learning Models ✨ NEW
+│   ├── __init__.py
+│   ├── models/                              # ML prediction models
+│   │   ├── __init__.py
+│   │   ├── ensemble_model.py                # Combined ML prediction models
+│   │   ├── model_utils.py                   # ML utilities and preprocessing
+│   │   ├── lstm_model.py                    # LSTM neural network (Optional)
+│   │   ├── arima_model.py                   # ARIMA time series (Optional)
+│   │   └── linear_model.py                  # Linear regression (Optional)
+│   ├── training/                            # Model training scripts (Optional)
+│   │   ├── __init__.py
+│   │   ├── model_trainer.py                 # Training pipeline
+│   │   └── data_preprocessor.py             # Data preparation
+│   └── predictions/                         # Prediction utilities (Optional)
+│       ├── __init__.py
+│       └── forecast_engine.py               # Real-time predictions
+├── expanded_database/                       # 🗄️ Enhanced Data Sources ✨ NEW
+│   ├── __init__.py
+│   ├── data_sources/                        # Multiple data providers
+│   │   ├── __init__.py
+│   │   ├── yahoo_finance_handler.py         # Yahoo Finance API wrapper
+│   │   ├── nse_bse_scraper.py              # NSE/BSE data scraper
+│   │   ├── stock_database.py               # Stock metadata manager
+│   │   └── crypto_data.py                  # Cryptocurrency data (Optional)
+│   ├── cache/                              # Data caching system
+│   │   └── .gitkeep
+│   └── symbols/                            # Stock symbol databases
+│       ├── nse_stocks.csv                  # NSE stock list (5000+ stocks)
+│       ├── bse_stocks.csv                  # BSE stock list
+│       ├── mutual_funds.csv                # Mutual fund data
+│       └── etf_list.csv                    # ETF listings
+├── components/                              # 🧩 UI Page Modules (Enhanced)
+│   ├── __init__.py
+│   ├── market_overview_module.py           # Market dashboard (Enhanced)
+│   ├── stock_analysis_module.py            # Stock analysis tools (Enhanced)
+│   ├── portfolio_tracker_module.py         # Portfolio management (Enhanced)
+│   ├── news_sentiment_module.py            # News and sentiment (Enhanced)
+│   ├── user_dashboard_module.py            # User profile dashboard ✨ NEW
+│   └── ml_predictions_module.py            # ML predictions interface ✨ NEW
+├── utils/                                   # 🔧 Utility Modules (Enhanced)
+│   ├── __init__.py
+│   ├── data_fetcher.py                     # Yahoo Finance & News APIs (Enhanced)
+│   ├── technical_analysis.py               # Technical indicators (Enhanced)
+│   ├── sentiment_analysis.py               # NLP sentiment analysis (Enhanced)
+│   ├── portfolio_manager.py                # Portfolio operations (Enhanced)
+│   ├── indian_stocks.py                    # Indian stock symbols (Expanded)
+│   ├── risk_analysis.py                    # Risk assessment tools ✨ NEW
+│   └── market_utils.py                     # Market utility functions ✨ NEW
+├── data/                                    # 💾 Data Storage ✨ NEW
+│   ├── cache/                              # Cached API responses
+│   │   ├── .gitkeep
+│   │   └── README.md                       # Cache documentation
+│   ├── models/                             # Saved ML models
+│   │   └── .gitkeep
+│   ├── exports/                            # User data exports
+│   │   └── .gitkeep
+│   └── users.db                            # SQLite user database (Auto-generated)
+├── static/                                  # 🎨 Static Assets ✨ NEW
+│   ├── css/
+│   │   ├── custom.css                      # Custom styling
+│   │   └── themes.css                      # Theme definitions
+│   ├── images/
+│   │   ├── logo.png                        # App logo
+│   │   ├── favicon.ico                     # Favicon
+│   │   └── background.jpg                  # Background images
+│   └── js/                                 # JavaScript files (Optional)
+│       └── custom.js                       # Custom JS functionality
+├── .streamlit/                             # ⚙️ Streamlit Configuration ✨ NEW
+│   ├── config.toml                         # App configuration
+│   └── secrets.toml                        # API keys (Local only - not in git)
+├── tests/                                   # 🧪 Test Files ✨ NEW
+│   ├── __init__.py
+│   ├── test_auth.py                        # Authentication tests
+│   ├── test_models.py                      # ML model tests
+│   ├── test_data_fetcher.py                # Data fetching tests
+│   └── test_integration.py                 # Integration tests
+├── docs/                                    # 📖 Documentation ✨ NEW
+│   ├── installation.md                     # Installation guide
+│   ├── user_guide.md                       # User manual
+│   ├── api_documentation.md                # API documentation
+│   ├── deployment_guide.md                 # Deployment instructions
+│   └── screenshots/                        # App screenshots
+└── deployment/                             # 🚀 Deployment Scripts ✨ NEW
+    ├── streamlit_deploy.yaml               # Streamlit Cloud config
+    ├── docker-compose.yml                  # Docker deployment
+    ├── Dockerfile                          # Docker container
+    └── heroku.yml                          # Heroku deployment
+
+
+# ============================================================================
+# 📊 TECHNOLOGY STACK
+# ============================================================================
+
+FRONTEND:
+├── Streamlit 1.28+ (Enhanced UI)
+├── Plotly 5.15+ (Interactive charts)
+├── Custom CSS themes
+└── Responsive design
+
+BACKEND:
+├── Python 3.9+ (Core logic)
+├── SQLite 3 (User database)
+├── Redis (Caching layer)
+└── RESTful API structure
+
+MACHINE LEARNING:
+├── TensorFlow 2.13+ (Deep learning)
+├── Scikit-learn (Classical ML)
+├── Statsmodels (Time series)
+└── NumPy/Pandas (Data processing)
+
+DATA SOURCES:
+├── Yahoo Finance API
+├── NSE/BSE official APIs
+├── NewsAPI aggregation
+└── Multiple RSS feeds
