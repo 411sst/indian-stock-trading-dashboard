@@ -349,6 +349,7 @@ elif selected_nav == "💼 Portfolio Tracker":
 elif selected_nav == "📰 News & Sentiment":
     news_sentiment_page(st.session_state.mode)
 
+
 elif selected_nav == "🤖 ML Predictions" and ENHANCED_FEATURES:
     if not st.session_state.logged_in:
         st.warning("🔒 Please login to access ML-powered predictions.")
@@ -390,167 +391,208 @@ elif selected_nav == "🤖 ML Predictions" and ENHANCED_FEATURES:
         if st.button("🚀 Generate AI Prediction", type="primary", use_container_width=True):
             with st.spinner("🧠 AI models are analyzing market data..."):
                 try:
-                    # Fetch stock data
-                    stock_data = yf.download(selected_stock, period="1y")
+                    # Fetch stock data with better error handling
+                    import yfinance as yf
+                    
+                    stock_data = yf.download(selected_stock, period="1y", progress=False)
                     
                     if stock_data.empty:
                         st.error("❌ Unable to fetch stock data. Please try another stock.")
                     else:
                         # Initialize and run ensemble model
                         ensemble_model = EnsembleModel()
-                        prediction_result = ensemble_model.predict(
-                            stock_data['Close'], 
-                            steps=prediction_steps,
-                            symbol=selected_stock
-                        )
                         
-                        # Display results
-                        st.markdown("---")
-                        st.subheader("🎯 AI Prediction Results")
+                        # Extract Close prices for prediction
+                        close_data = stock_data['Close'].dropna()
                         
-                        # Key metrics
-                        col1, col2, col3, col4 = st.columns(4)
-                        
-                        current_price = prediction_result['current_price']
-                        predicted_price = prediction_result['predicted_price']
-                        price_change = prediction_result['price_change_percent']
-                        confidence = prediction_result['confidence']
-                        
-                        with col1:
-                            st.markdown(f"""
-                            <div class="ml-metric">
-                                <h4 style="margin: 0; color: #60a5fa;">Current Price</h4>
-                                <h2 style="margin: 5px 0; color: white;">₹{current_price:.2f}</h2>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        
-                        with col2:
-                            color = "#10b981" if price_change > 0 else "#ef4444"
-                            arrow = "↗️" if price_change > 0 else "↘️"
-                            st.markdown(f"""
-                            <div class="ml-metric">
-                                <h4 style="margin: 0; color: #60a5fa;">Predicted Price</h4>
-                                <h2 style="margin: 5px 0; color: {color};">₹{predicted_price:.2f} {arrow}</h2>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        
-                        with col3:
-                            st.markdown(f"""
-                            <div class="ml-metric">
-                                <h4 style="margin: 0; color: #60a5fa;">Expected Change</h4>
-                                <h2 style="margin: 5px 0; color: {color};">{price_change:+.1f}%</h2>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        
-                        with col4:
-                            conf_color = "#10b981" if confidence > 0.7 else "#f59e0b" if confidence > 0.5 else "#ef4444"
-                            st.markdown(f"""
-                            <div class="ml-metric">
-                                <h4 style="margin: 0; color: #60a5fa;">AI Confidence</h4>
-                                <h2 style="margin: 5px 0; color: {conf_color};">{confidence:.1%}</h2>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        
-                        # Prediction visualization
-                        st.subheader("📈 Price Prediction Chart")
-                        
-                        # Prepare chart data
-                        historical_data = stock_data['Close'].tail(30)
-                        pred_dates = prediction_result['dates']
-                        predictions = prediction_result['predictions']
-                        
-                        fig = go.Figure()
-                        
-                        # Historical prices
-                        fig.add_trace(go.Scatter(
-                            x=historical_data.index,
-                            y=historical_data.values,
-                            mode='lines',
-                            name='Historical Prices',
-                            line=dict(color='#60a5fa', width=2)
-                        ))
-                        
-                        # Predictions
-                        fig.add_trace(go.Scatter(
-                            x=pred_dates,
-                            y=predictions,
-                            mode='lines+markers',
-                            name=f'AI Predictions ({prediction_period})',
-                            line=dict(color='#10b981', width=3, dash='dot'),
-                            marker=dict(size=6)
-                        ))
-                        
-                        # Connection point
-                        fig.add_trace(go.Scatter(
-                            x=[historical_data.index[-1], pred_dates[0]],
-                            y=[historical_data.iloc[-1], predictions[0]],
-                            mode='lines',
-                            name='Transition',
-                            line=dict(color='#f59e0b', width=2, dash='dash'),
-                            showlegend=False
-                        ))
-                        
-                        fig.update_layout(
-                            title=f"AI Prediction for {INDIAN_STOCKS[selected_stock]}",
-                            xaxis_title="Date",
-                            yaxis_title="Price (₹)",
-                            template='plotly_dark',
-                            height=500,
-                            hovermode='x unified'
-                        )
-                        
-                        st.plotly_chart(fig, use_container_width=True)
-                        
-                        # AI Summary
-                        st.markdown(f"""
-                        <div class="prediction-card">
-                            <h3 style="margin-top: 0;">🤖 AI Analysis Summary</h3>
-                            {ensemble_model.get_prediction_summary(prediction_result)}
+                        if len(close_data) < 5:
+                            st.error("❌ Insufficient historical data for prediction.")
+                        else:
+                            prediction_result = ensemble_model.predict(
+                                close_data, 
+                                steps=prediction_steps,
+                                symbol=selected_stock
+                            )
                             
-                            <br><br>
-                            <strong>📊 Model Details:</strong><br>
-                            • Method: {prediction_result['method']}<br>
-                            • Data Points: {prediction_result['data_points']} trading days<br>
-                            • Volatility: {prediction_result['volatility']:.3f}<br>
-                            • Risk Level: {risk_adjustment}
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        # Model components (if requested)
-                        if show_components and 'individual_predictions' in prediction_result:
-                            st.subheader("🔍 Individual Model Components")
-                            
-                            components = prediction_result['individual_predictions']
-                            confidences = prediction_result.get('individual_confidences', {})
-                            
-                            comp_cols = st.columns(len(components))
-                            for i, (model_name, preds) in enumerate(components.items()):
-                                with comp_cols[i]:
-                                    final_pred = preds[-1] if len(preds) > 0 else current_price
-                                    change = ((final_pred - current_price) / current_price) * 100
-                                    conf = confidences.get(model_name, 0.5)
+                            # Validate prediction result
+                            if not isinstance(prediction_result, dict) or 'predictions' not in prediction_result:
+                                st.error("❌ Prediction failed. Please try again or select a different stock.")
+                            else:
+                                # Display results
+                                st.markdown("---")
+                                st.subheader("🎯 AI Prediction Results")
+                                
+                                # Key metrics with safe value extraction
+                                col1, col2, col3, col4 = st.columns(4)
+                                
+                                current_price = prediction_result.get('current_price', 0)
+                                predicted_price = prediction_result.get('predicted_price', 0)
+                                price_change = prediction_result.get('price_change_percent', 0)
+                                confidence = prediction_result.get('confidence', 0)
+                                
+                                with col1:
+                                    st.markdown(f"""
+                                    <div class="ml-metric">
+                                        <h4 style="margin: 0; color: #60a5fa;">Current Price</h4>
+                                        <h2 style="margin: 5px 0; color: white;">₹{current_price:.2f}</h2>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                
+                                with col2:
+                                    color = "#10b981" if price_change > 0 else "#ef4444"
+                                    arrow = "↗️" if price_change > 0 else "↘️"
+                                    st.markdown(f"""
+                                    <div class="ml-metric">
+                                        <h4 style="margin: 0; color: #60a5fa;">Predicted Price</h4>
+                                        <h2 style="margin: 5px 0; color: {color};">₹{predicted_price:.2f} {arrow}</h2>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                
+                                with col3:
+                                    st.markdown(f"""
+                                    <div class="ml-metric">
+                                        <h4 style="margin: 0; color: #60a5fa;">Expected Change</h4>
+                                        <h2 style="margin: 5px 0; color: {color};">{price_change:+.1f}%</h2>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                
+                                with col4:
+                                    conf_color = "#10b981" if confidence > 0.7 else "#f59e0b" if confidence > 0.5 else "#ef4444"
+                                    st.markdown(f"""
+                                    <div class="ml-metric">
+                                        <h4 style="margin: 0; color: #60a5fa;">AI Confidence</h4>
+                                        <h2 style="margin: 5px 0; color: {conf_color};">{confidence:.1%}</h2>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                
+                                # Prediction visualization
+                                st.subheader("📈 Price Prediction Chart")
+                                
+                                try:
+                                    # Prepare chart data safely
+                                    historical_data = close_data.tail(30)
+                                    pred_dates = prediction_result.get('dates', pd.date_range(
+                                        start=datetime.now() + timedelta(days=1), 
+                                        periods=prediction_steps, 
+                                        freq='D'
+                                    ))
+                                    predictions = prediction_result['predictions']
                                     
-                                    st.metric(
-                                        model_name.replace('_', ' ').title(),
-                                        f"₹{final_pred:.2f}",
-                                        f"{change:+.1f}%"
+                                    fig = go.Figure()
+                                    
+                                    # Historical prices
+                                    fig.add_trace(go.Scatter(
+                                        x=historical_data.index,
+                                        y=historical_data.values,
+                                        mode='lines',
+                                        name='Historical Prices',
+                                        line=dict(color='#60a5fa', width=2)
+                                    ))
+                                    
+                                    # Predictions
+                                    fig.add_trace(go.Scatter(
+                                        x=pred_dates,
+                                        y=predictions,
+                                        mode='lines+markers',
+                                        name=f'AI Predictions ({prediction_period})',
+                                        line=dict(color='#10b981', width=3, dash='dot'),
+                                        marker=dict(size=6)
+                                    ))
+                                    
+                                    # Connection point
+                                    if len(historical_data) > 0 and len(predictions) > 0:
+                                        fig.add_trace(go.Scatter(
+                                            x=[historical_data.index[-1], pred_dates[0]],
+                                            y=[historical_data.iloc[-1], predictions[0]],
+                                            mode='lines',
+                                            name='Transition',
+                                            line=dict(color='#f59e0b', width=2, dash='dash'),
+                                            showlegend=False
+                                        ))
+                                    
+                                    fig.update_layout(
+                                        title=f"AI Prediction for {INDIAN_STOCKS[selected_stock]}",
+                                        xaxis_title="Date",
+                                        yaxis_title="Price (₹)",
+                                        template='plotly_dark',
+                                        height=500,
+                                        hovermode='x unified'
                                     )
-                                    st.caption(f"Confidence: {conf:.1%}")
-                        
-                        # Risk warnings
-                        if confidence < confidence_threshold:
-                            st.warning(f"⚠️ Low prediction confidence ({confidence:.1%}). Consider waiting for more data or using conservative position sizing.")
-                        
-                        if abs(price_change) > 10:
-                            st.warning("⚠️ High volatility prediction detected. Exercise caution and consider risk management strategies.")
-                        
-                        # Disclaimer
-                        st.markdown("---")
-                        st.info("📢 **Disclaimer**: These AI predictions are for educational purposes only and should not be considered as financial advice. Always consult with qualified financial advisors and conduct your own research before making investment decisions.")
+                                    
+                                    st.plotly_chart(fig, use_container_width=True)
+                                    
+                                except Exception as chart_error:
+                                    st.warning(f"Chart display error: {str(chart_error)}")
+                                    st.info("Prediction data is available but chart couldn't be rendered.")
+                                
+                                # AI Summary
+                                try:
+                                    summary = ensemble_model.get_prediction_summary(prediction_result)
+                                    method = prediction_result.get('method', 'Unknown')
+                                    data_points = prediction_result.get('data_points', 0)
+                                    volatility = prediction_result.get('volatility', 0)
+                                    
+                                    st.markdown(f"""
+                                    <div class="prediction-card">
+                                        <h3 style="margin-top: 0;">🤖 AI Analysis Summary</h3>
+                                        {summary}
+                                        
+                                        <br><br>
+                                        <strong>📊 Model Details:</strong><br>
+                                        • Method: {method}<br>
+                                        • Data Points: {data_points} trading days<br>
+                                        • Volatility: {volatility:.3f}<br>
+                                        • Risk Level: {risk_adjustment}
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                    
+                                except Exception as summary_error:
+                                    st.info("Prediction completed successfully, but summary generation encountered an issue.")
+                                
+                                # Model components (if requested)
+                                if show_components and 'individual_predictions' in prediction_result:
+                                    st.subheader("🔍 Individual Model Components")
+                                    
+                                    components = prediction_result['individual_predictions']
+                                    confidences = prediction_result.get('individual_confidences', {})
+                                    
+                                    if components:
+                                        comp_cols = st.columns(min(len(components), 4))  # Max 4 columns
+                                        for i, (model_name, preds) in enumerate(components.items()):
+                                            if i < len(comp_cols):
+                                                with comp_cols[i]:
+                                                    try:
+                                                        final_pred = preds[-1] if len(preds) > 0 else current_price
+                                                        change = ((final_pred - current_price) / current_price) * 100 if current_price != 0 else 0
+                                                        conf = confidences.get(model_name, 0.5)
+                                                        
+                                                        st.metric(
+                                                            model_name.replace('_', ' ').title(),
+                                                            f"₹{final_pred:.2f}",
+                                                            f"{change:+.1f}%"
+                                                        )
+                                                        st.caption(f"Confidence: {conf:.1%}")
+                                                    except Exception as comp_error:
+                                                        st.caption(f"Component error: {model_name}")
+                                
+                                # Risk warnings
+                                if confidence < confidence_threshold:
+                                    st.warning(f"⚠️ Low prediction confidence ({confidence:.1%}). Consider waiting for more data or using conservative position sizing.")
+                                
+                                if abs(price_change) > 10:
+                                    st.warning("⚠️ High volatility prediction detected. Exercise caution and consider risk management strategies.")
+                                
+                                # Disclaimer
+                                st.markdown("---")
+                                st.info("📢 **Disclaimer**: These AI predictions are for educational purposes only and should not be considered as financial advice. Always consult with qualified financial advisors and conduct your own research before making investment decisions.")
 
                 except Exception as e:
                     st.error(f"❌ Prediction failed: {str(e)}")
-                    st.info("💡 This might be due to insufficient data or temporary API issues. Please try again later.")
+                    st.info("💡 This might be due to:")
+                    st.markdown("- Insufficient historical data for the selected stock")
+                    st.markdown("- Temporary API rate limits from Yahoo Finance")
+                    st.markdown("- Network connectivity issues")
+                    st.markdown("- Try selecting a different stock or wait a few minutes before retrying")
 
 elif selected_nav == "⚙️ User Settings" and ENHANCED_FEATURES and st.session_state.logged_in:
     st.title("⚙️ User Settings & Preferences")
