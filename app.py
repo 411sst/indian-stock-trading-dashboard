@@ -1071,14 +1071,32 @@ elif selected_nav == "🤖 ML Predictions" and ENHANCED_FEATURES:
                         col1, col2 = st.columns(2)
                         with col1:
                             st.download_button(
-                    label="📥 Download Watchlist CSV",
-                    data=csv,
-                    file_name=f"watchlist_{user['username']}_{datetime.now().strftime('%Y%m%d')}.csv",
-                    mime="text/csv"
-                    )
-            else:
-                st.warning("No watchlist data to export")
-    
+                                label="📄 Download Analysis Report (CSV)",
+                                data=csv_data,
+                                file_name=f"AI_Analysis_{selected_stock}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                                mime="text/csv"
+                            )
+                        with col2:
+                            # JSON export for advanced users
+                            json_data = {
+                                'analysis_metadata': export_data,
+                                'predictions': prediction_result.get('predictions', []).tolist() if isinstance(prediction_result.get('predictions', []), np.ndarray) else prediction_result.get('predictions', []),
+                                'risk_metrics': risk_metrics if risk_metrics else {},
+                                'model_performance': {
+                                    'confidence': confidence,
+                                    'validation_passed': is_valid,
+                                    'individual_models': individual_confs
+                                }
+                            }
+                            import json
+                            json_str = json.dumps(json_data, indent=2, default=str)
+                            st.download_button(
+                                label="📊 Download Full Data (JSON)",
+                                data=json_str,
+                                file_name=f"AI_Analysis_Full_{selected_stock}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                                mime="application/json"
+                            )
+
     # Account Management
     st.subheader("🔐 Account Management")
     
