@@ -1099,7 +1099,7 @@ elif selected_nav == "🤖 ML Predictions" and ENHANCED_FEATURES:
 
         # Account Management
         st.subheader("🔐 Account Management")
-        with st.expander("🔑 Change Password", expanded=False):
+            with st.expander("🔑 Change Password", expanded=False):
             with st.form("change_password_form"):
                 current_password = st.text_input("Current Password", type="password")
                 new_password = st.text_input("New Password", type="password")
