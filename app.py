@@ -1097,291 +1097,112 @@ elif selected_nav == "🤖 ML Predictions" and ENHANCED_FEATURES:
                                 mime="application/json"
                             )
 
-    # Account Management
-    st.subheader("🔐 Account Management")
-    
-    with st.expander("🔑 Change Password", expanded=False):
-        with st.form("change_password_form"):
-            current_password = st.text_input("Current Password", type="password")
-            new_password = st.text_input("New Password", type="password")
-            confirm_new_password = st.text_input("Confirm New Password", type="password")
-            
-            if new_password:
-                st.markdown(create_password_strength_indicator(new_password), unsafe_allow_html=True)
-            
-            if st.form_submit_button("🔄 Change Password"):
-                if not all([current_password, new_password, confirm_new_password]):
-                    st.error("❌ Please fill in all fields")
-                elif new_password != confirm_new_password:
-                    st.error("❌ New passwords don't match")
-                else:
-                    password_valid, password_msg = validate_password(new_password)
-                    if not password_valid:
-                        st.error(f"❌ {password_msg}")
+        # Account Management
+        st.subheader("🔐 Account Management")
+        with st.expander("🔑 Change Password", expanded=False):
+            with st.form("change_password_form"):
+                current_password = st.text_input("Current Password", type="password")
+                new_password = st.text_input("New Password", type="password")
+                confirm_new_password = st.text_input("Confirm New Password", type="password")
+                if new_password:
+                    st.markdown(create_password_strength_indicator(new_password), unsafe_allow_html=True)
+                if st.form_submit_button("🔄 Change Password"):
+                    if not all([current_password, new_password, confirm_new_password]):
+                        st.error("❌ Please fill in all fields")
+                    elif new_password != confirm_new_password:
+                        st.error("❌ New passwords don't match")
                     else:
-                        # Note: You'd need to implement change_password method in auth_handler
-                        st.info("🔄 Password change functionality would be implemented here")
-    
-    with st.expander("⚠️ Danger Zone", expanded=False):
-        st.markdown("### Delete Account")
-        st.warning("⚠️ This action cannot be undone. All your data will be permanently deleted.")
-        
-        delete_confirmation = st.text_input(
-            "Type 'DELETE' to confirm account deletion:",
-            placeholder="Type DELETE here"
-        )
-        
-        if st.button("🗑️ Delete Account", type="secondary", disabled=delete_confirmation != "DELETE"):
-            st.error("🚨 Account deletion functionality would be implemented here with proper confirmation")
+                        password_valid, password_msg = validate_password(new_password)
+                        if not password_valid:
+                            st.error(f"❌ {password_msg}")
+                        else:
+                            # Note: You'd need to implement change_password method in auth_handler
+                            st.info("🔄 Password change functionality would be implemented here")
 
-else:
-    # Handle cases where enhanced features aren't available
-    if not ENHANCED_FEATURES:
-        st.title("📈 Indian Stock Trading Dashboard")
-        st.warning("⚠️ Enhanced features (Authentication & ML) are not available.")
-        st.info("💡 To enable full functionality, install required packages:")
-        st.code("pip install tensorflow-cpu scikit-learn statsmodels bcrypt validators")
-        
-        st.markdown("---")
-        st.markdown("### Available Features:")
-        st.markdown("✅ Market Overview")
-        st.markdown("✅ Stock Analysis")  
-        st.markdown("✅ Portfolio Tracker")
-        st.markdown("✅ News & Sentiment")
-        st.markdown("❌ User Authentication")
-        st.markdown("❌ ML Predictions")
-        st.markdown("❌ Personal Settings")
-    
-    elif selected_nav not in ["📊 Market Overview", "📈 Stock Analysis", "💼 Portfolio Tracker", "📰 News & Sentiment"]:
-        st.title("🔒 Authentication Required")
-        st.info("Please login to access this feature.")
-        
-        # Quick login form in main area
-        with st.container():
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                st.markdown("### Quick Login")
-                with st.form("main_login_form"):
-                    username = st.text_input("Username")
-                    password = st.text_input("Password", type="password")
-                    
-                    if st.form_submit_button("Login", use_container_width=True):
-                        if username and password:
-                            user_id, message = st.session_state.auth_handler.verify_user(username, password)
-                            if user_id:
-                                st.session_state.logged_in = True
-                                st.session_state.user = st.session_state.auth_handler.get_user_info(user_id)
-                                st.success("✅ Login successful!")
-                                st.rerun()
-                            else:
-                                st.error(f"❌ {message}")
-
-# Footer with additional information
-st.markdown("---")
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.markdown("### 🚀 Features")
-    st.markdown("- Real-time market data")
-    st.markdown("- Technical analysis")
-    st.markdown("- News sentiment analysis")
-    if ENHANCED_FEATURES:
-        st.markdown("- AI-powered predictions")
-        st.markdown("- User authentication")
-
-with col2:
-    st.markdown("### 📊 Data Sources")
-    st.markdown("- Yahoo Finance")
-    st.markdown("- NSE/BSE APIs")
-    st.markdown("- News aggregators")
-    st.markdown("- Technical indicators")
-
-with col3:
-    st.markdown("### ⚠️ Disclaimer")
-    st.markdown("This application is for educational purposes only.")
-    st.markdown("Not financial advice.")
-    st.markdown("Please consult qualified advisors.")
-
-# Performance metrics (if user is logged in)
-if ENHANCED_FEATURES and st.session_state.logged_in:
-    with st.sidebar:
-        if st.button("📊 Performance Metrics"):
-            st.session_state.show_performance = True
-        
-        if st.session_state.get('show_performance', False):
-            st.markdown("### 📈 Your Trading Stats")
-            # Mock performance data
-            st.metric("Portfolio Return", "+12.5%", "+2.3%")
-            st.metric("Win Rate", "68%", "+5%")
-            st.metric("Predictions Used", "23", "+3")
-            
-            if st.button("❌ Close"):
-                st.session_state.show_performance = False
-                st.rerun()
-                                label="📄 Download Analysis Report (CSV)",
-                                data=csv_data,
-                                file_name=f"AI_Analysis_{selected_stock}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                                mime="text/csv"
-                            )
-                        
-                        with col2:
-                            # JSON export for advanced users
-                            json_data = {
-                                'analysis_metadata': export_data,
-                                'predictions': prediction_result.get('predictions', []).tolist() if isinstance(prediction_result.get('predictions', []), np.ndarray) else prediction_result.get('predictions', []),
-                                'risk_metrics': risk_metrics if risk_metrics else {},
-                                'model_performance': {
-                                    'confidence': confidence,
-                                    'validation_passed': is_valid,
-                                    'individual_models': individual_confs
-                                }
-                            }
-                            
-                            import json
-                            json_str = json.dumps(json_data, indent=2, default=str)
-                            
-                            st.download_button(
-                                label="📊 Download Full Data (JSON)",
-                                data=json_str,
-                                file_name=f"AI_Analysis_Full_{selected_stock}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-                                mime="application/json"
-                            )
-                        
-                        # Final disclaimer
-                        st.markdown("---")
-                        st.warning("⚠️ **Important Disclaimer:** This analysis is for educational purposes only and should not be considered as financial advice. Always consult with qualified financial advisors before making investment decisions.")
-                        
-            except Exception as e:
-                st.error(f"❌ Analysis failed: {str(e)}")
-                st.info("🔄 Please try again or contact support if the issue persists.")
-                
-                # Debug information for troubleshooting
-                with st.expander("🔧 Troubleshooting Information"):
-                    st.write("**Error Details:**")
-                    st.code(str(e))
-                    
-                    st.write("**Possible Solutions:**")
-                    st.write("1. Check your internet connection")
-                    st.write("2. Try a different stock symbol")
-                    st.write("3. Reduce the prediction period")
-                    st.write("4. Refresh the page and try again")
-                    
-                    st.write("**System Information:**")
-                    st.write(f"• Enhanced Features: {ENHANCED_FEATURES}")
-                    st.write(f"• User Logged In: {st.session_state.logged_in}")
-                    st.write(f"• Selected Stock: {selected_stock}")
-                    st.write(f"• Prediction Steps: {prediction_steps}")
-
-elif selected_nav == "⚙️ User Settings" and ENHANCED_FEATURES and st.session_state.logged_in:
-    st.title("⚙️ User Settings & Preferences")
-    
-    user = st.session_state.user
-    
-    # User Profile Section
-    st.subheader("👤 Profile Information")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.text_input("Username", value=user['username'], disabled=True)
-        st.text_input("Email", value=user['email'], disabled=True)
-    
-    with col2:
-        st.text_input("Member Since", value=user.get('created_at', 'Unknown'), disabled=True)
-        st.text_input("Last Login", value=user.get('last_login', 'Never'), disabled=True)
-    
-    # Preferences Section
-    st.subheader("🎨 Preferences")
-    
-    with st.form("preferences_form"):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            theme_preference = st.selectbox(
-                "Theme",
-                ["Dark", "Light", "Auto"],
-                index=0 if user.get('theme', 'dark') == 'dark' else 1
+        with st.expander("⚠️ Danger Zone", expanded=False):
+            st.markdown("### Delete Account")
+            st.warning("⚠️ This action cannot be undone. All your data will be permanently deleted.")
+            delete_confirmation = st.text_input(
+                "Type 'DELETE' to confirm account deletion:",
+                placeholder="Type DELETE here"
             )
-            
-            default_mode = st.selectbox(
-                "Default Trading Mode",
-                ["Beginner", "Pro", "Expert"],
-                index=["Beginner", "Pro", "Expert"].index(user.get('default_mode', 'Beginner'))
-            )
-        
-        with col2:
-            email_notifications = st.checkbox(
-                "Email Notifications",
-                value=user.get('email_notifications', True)
-            )
-            
-            auto_refresh = st.checkbox(
-                "Auto-refresh Data",
-                value=True
-            )
-        
-        if st.form_submit_button("💾 Save Preferences", use_container_width=True):
-            success = st.session_state.auth_handler.update_user_preferences(
-                user['id'],
-                theme=theme_preference.lower(),
-                default_mode=default_mode,
-                email_notifications=email_notifications
-            )
-            
-            if success:
-                st.success("✅ Preferences updated successfully!")
-                # Update session state
-                st.session_state.user.update({
-                    'theme': theme_preference.lower(),
-                    'default_mode': default_mode,
-                    'email_notifications': email_notifications
-                })
-            else:
-                st.error("❌ Failed to update preferences")
-    
-    # Portfolio Management Section
-    st.subheader("💼 Portfolio Management")
-    
-    # Get user's portfolio
-    user_portfolio = st.session_state.auth_handler.get_user_portfolio(user['id'])
-    
-    if user_portfolio:
-        st.write(f"You have {len(user_portfolio)} holdings in your portfolio:")
-        
-        # Display portfolio in a nice format
-        portfolio_df = pd.DataFrame(user_portfolio)
-        st.dataframe(
-            portfolio_df[['symbol', 'quantity', 'buy_price', 'buy_date']],
-            use_container_width=True
-        )
-        
-        # Option to clear portfolio
-        if st.button("🗑️ Clear All Portfolio Data", type="secondary"):
-            if st.checkbox("I understand this will delete all my portfolio data"):
-                # Note: You'd need to implement this method in auth_handler
-                st.warning("Clear portfolio functionality would be implemented here")
+            if st.button("🗑️ Delete Account", type="secondary", disabled=delete_confirmation != "DELETE"):
+                st.error("🚨 Account deletion functionality would be implemented here with proper confirmation")
+
     else:
-        st.info("📊 Your portfolio is empty. Add some stocks from the Portfolio Tracker page!")
-    
-    # Watchlist Management
-    st.subheader("👀 Watchlist Management")
-    
-    user_watchlist = st.session_state.auth_handler.get_user_watchlist(user['id'])
-    
-    if user_watchlist:
-        st.write(f"You're watching {len(user_watchlist)} stocks:")
-        
-        for item in user_watchlist:
-            col1, col2, col3 = st.columns([3, 2, 1])
-            with col1:
-                st.write(f"📈 {INDIAN_STOCKS.get(item['symbol'], item['symbol'])}")
-            with col2:
-                if item['alert_price']:
-                    st.write(f"🔔 Alert: ₹{item['alert_price']}")
-                else:
-                    st.write("No alert set")
-            with col3:
-                if st.button("❌", key=f"remove_{item['id']}"):
-                    # Remove from watchlist functionality would go here
+        # Handle cases where enhanced features aren't available
+        if not ENHANCED_FEATURES:
+            st.title("📈 Indian Stock Trading Dashboard")
+            st.warning("⚠️ Enhanced features (Authentication & ML) are not available.")
+            st.info("💡 To enable full functionality, install required packages:")
+            st.code("pip install tensorflow-cpu scikit-learn statsmodels bcrypt validators")
+            st.markdown("---")
+            st.markdown("### Available Features:")
+            st.markdown("✅ Market Overview")
+            st.markdown("✅ Stock Analysis")  
+            st.markdown("✅ Portfolio Tracker")
+            st.markdown("✅ News & Sentiment")
+            st.markdown("❌ User Authentication")
+            st.markdown("❌ ML Predictions")
+            st.markdown("❌ Personal Settings")
+        elif selected_nav not in ["📊 Market Overview", "📈 Stock Analysis", "💼 Portfolio Tracker", "📰 News & Sentiment"]:
+            st.title("🔒 Authentication Required")
+            st.info("Please login to access this feature.")
+            # Quick login form in main area
+            with st.container():
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col2:
+                    st.markdown("### Quick Login")
+                    with st.form("main_login_form"):
+                        username = st.text_input("Username")
+                        password = st.text_input("Password", type="password")
+                        if st.form_submit_button("Login", use_container_width=True):
+                            if username and password:
+                                user_id, message = st.session_state.auth_handler.verify_user(username, password)
+                                if user_id:
+                                    st.session_state.logged_in = True
+                                    st.session_state.user = st.session_state.auth_handler.get_user_info(user_id)
+                                    st.success("✅ Login successful!")
+                                    st.rerun()
+                                else:
+                                    st.error(f"❌ {message}")
+
+    # Footer with additional information
+    st.markdown("---")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown("### 🚀 Features")
+        st.markdown("- Real-time market data")
+        st.markdown("- Technical analysis")
+        st.markdown("- News sentiment analysis")
+        if ENHANCED_FEATURES:
+            st.markdown("- AI-powered predictions")
+            st.markdown("- User authentication")
+    with col2:
+        st.markdown("### 📊 Data Sources")
+        st.markdown("- Yahoo Finance")
+        st.markdown("- NSE/BSE APIs")
+        st.markdown("- News aggregators")
+        st.markdown("- Technical indicators")
+    with col3:
+        st.markdown("### ⚠️ Disclaimer")
+        st.markdown("This application is for educational purposes only.")
+        st.markdown("Not financial advice.")
+        st.markdown("Please consult qualified advisors.")
+
+    # Performance metrics (if user is logged in)
+    if ENHANCED_FEATURES and st.session_state.logged_in:
+        with st.sidebar:
+            if st.button("📊 Performance Metrics"):
+                st.session_state.show_performance = True
+            if st.session_state.get('show_performance', False):
+                st.markdown("### 📈 Your Trading Stats")
+                # Mock performance data
+                st.metric("Portfolio Return", "+12.5%", "+2.3%")
+                st.metric("Win Rate", "68%", "+5%")
+                st.metric("Predictions Used", "23", "+3")
+                if st.button("❌ Close"):
+                    st.session_state.show_performance = False
                     st.rerun()
     else:
         st.info("👀 Your watchlist is empty. Add stocks from the Stock Analysis page!")
