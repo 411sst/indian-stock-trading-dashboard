@@ -1,3 +1,4 @@
+# Existing dependencies
 streamlit>=1.28.0
 yfinance>=0.2.18
 pandas>=2.0.0
@@ -10,3 +11,17 @@ textblob>=0.17.1
 ta>=0.10.2
 python-dotenv>=1.0.1
 pytz>=2023.3
+
+# New authentication dependencies
+bcrypt>=4.0.1
+validators>=0.22.0
+
+# New ML dependencies (CPU-only for Streamlit Cloud)
+tensorflow-cpu>=2.13.0
+scikit-learn>=1.3.0
+statsmodels>=0.14.0
+joblib>=1.3.0
+
+# Enhanced data handling
+selenium>=4.15.0
+webdriver-manager>=4.0.1
