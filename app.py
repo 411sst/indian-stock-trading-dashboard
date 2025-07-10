@@ -1075,7 +1075,7 @@ elif selected_nav == "🤖 ML Predictions" and ENHANCED_FEATURES:
                     data=csv,
                     file_name=f"watchlist_{user['username']}_{datetime.now().strftime('%Y%m%d')}.csv",
                     mime="text/csv"
-                )
+                    )
             else:
                 st.warning("No watchlist data to export")
     
