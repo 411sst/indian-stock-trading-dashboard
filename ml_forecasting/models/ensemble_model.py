@@ -5,10 +5,6 @@ from datetime import datetime, timedelta
 import warnings
 warnings.filterwarnings('ignore')
 
-# FILE: ml_forecasting/models/ensemble_model.py
-# Fixed Confidence Score Calculation
-# Replace the confidence calculation in ensemble_model.py
-
 class EnsembleModel:
     def __init__(self):
         self.models = {
