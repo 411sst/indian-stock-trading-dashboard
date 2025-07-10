@@ -349,11 +349,6 @@ elif selected_nav == "💼 Portfolio Tracker":
 elif selected_nav == "📰 News & Sentiment":
     news_sentiment_page(st.session_state.mode)
 
-
-# FILE: app.py (Complete ML Predictions section replacement)
-# Main App Integration - Complete ML Section
-# Replace the entire ML Predictions section with this code
-
 elif selected_nav == "🤖 ML Predictions" and ENHANCED_FEATURES:
     if not st.session_state.logged_in:
         st.warning("🔒 Please login to access ML-powered predictions.")
@@ -595,7 +590,7 @@ elif selected_nav == "🤖 ML Predictions" and ENHANCED_FEATURES:
                             else:
                                 st.metric("📊 Data Points", f"{len(close_data)}")
                         
-# === CHART GENERATION (FIXED) ===
+                        # === CHART GENERATION (FIXED) ===
                         st.subheader("📈 Price Prediction Visualization")
                         
                         try:
@@ -826,6 +821,438 @@ elif selected_nav == "🤖 ML Predictions" and ENHANCED_FEATURES:
                                 st.write(f"• Prediction data: {len(prediction_result.get('predictions', []))}")
                                 st.write(f"• Current price: ₹{current_price:.2f}")
                                 st.write(f"• Confidence: {confidence:.3f}")
+                        
+                        # Display Risk Analysis if available
+                        if risk_metrics and show_risk_metrics:
+                            st.markdown("---")
+                            st.subheader("⚖️ Risk Analysis Dashboard")
+                            
+                            # Risk Score Display
+                            risk_score = risk_metrics.get('risk_score', 50)
+                            col1, col2, col3 = st.columns([1, 2, 1])
+                            
+                            with col2:
+                                # Create risk gauge
+                                risk_fig = go.Figure(go.Indicator(
+                                    mode="gauge+number",
+                                    value=risk_score,
+                                    domain={'x': [0, 1], 'y': [0, 1]},
+                                    title={'text': "Risk Score", 'font': {'size': 20}},
+                                    gauge={
+                                        'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "white"},
+                                        'bar': {'color': "darkred" if risk_score > 70 else "orange" if risk_score > 50 else "green"},
+                                        'steps': [
+                                            {'range': [0, 30], 'color': "rgba(0, 255, 0, 0.3)"},
+                                            {'range': [30, 60], 'color': "rgba(255, 255, 0, 0.3)"},
+                                            {'range': [60, 80], 'color': "rgba(255, 165, 0, 0.3)"},
+                                            {'range': [80, 100], 'color': "rgba(255, 0, 0, 0.3)"}
+                                        ],
+                                        'threshold': {
+                                            'line': {'color': "red", 'width': 4},
+                                            'thickness': 0.75,
+                                            'value': 85
+                                        }
+                                    }
+                                ))
+                                
+                                risk_fig.update_layout(
+                                    height=300,
+                                    template='plotly_dark',
+                                    font={'color': "white", 'family': "Arial"},
+                                    paper_bgcolor='rgba(0,0,0,0)',
+                                    plot_bgcolor='rgba(0,0,0,0)'
+                                )
+                                
+                                st.plotly_chart(risk_fig, use_container_width=True)
+                            
+                            # Risk Metrics
+                            st.subheader("📊 Detailed Risk Metrics")
+                            risk_cols = st.columns(4)
+                            
+                            with risk_cols[0]:
+                                var_1d = risk_metrics.get('var_metrics', {}).get('var_1d', 0.025)
+                                st.metric("1-Day VaR", f"{var_1d:.2%}", "95% Confidence")
+                            
+                            with risk_cols[1]:
+                                max_dd = risk_metrics.get('max_drawdown', 0.08)
+                                st.metric("Max Drawdown", f"{max_dd:.2%}", "Historical")
+                            
+                            with risk_cols[2]:
+                                vol_regime = risk_metrics.get('volatility_regime', {}).get('regime', 'normal')
+                                st.metric("Volatility Regime", vol_regime.title(), "Current")
+                            
+                            with risk_cols[3]:
+                                pred_vol = risk_metrics.get('prediction_volatility', 0.05)
+                                st.metric("Prediction Volatility", f"{pred_vol:.2%}", "Forecast")
+                            
+                            # Stress Test Results
+                            if stress_testing and 'stress_scenarios' in risk_metrics:
+                                st.subheader("🔥 Stress Test Scenarios")
+                                
+                                stress_scenarios = risk_metrics['stress_scenarios']
+                                if 'error' not in stress_scenarios:
+                                    scenario_data = []
+                                    for name, data in stress_scenarios.items():
+                                        if isinstance(data, dict) and 'total_return' in data:
+                                            scenario_data.append({
+                                                'scenario': name.replace('_', ' ').title(),
+                                                'return': float(data['total_return']),
+                                                'final_price': float(data.get('final_price', current_price))
+                                            })
+                                    
+                                    if scenario_data:
+                                        # Sort by return for better visualization
+                                        scenario_data.sort(key=lambda x: x['return'], reverse=True)
+                                        
+                                        scenarios = [item['scenario'] for item in scenario_data]
+                                        returns = [item['return'] for item in scenario_data]
+                                        
+                                        # Color coding
+                                        colors = []
+                                        for ret in returns:
+                                            if ret > 8:
+                                                colors.append('#10b981')  # Green
+                                            elif ret > 0:
+                                                colors.append('#3b82f6')  # Blue
+                                            elif ret > -8:
+                                                colors.append('#f59e0b')  # Orange
+                                            else:
+                                                colors.append('#ef4444')  # Red
+                                        
+                                        # Create stress test chart
+                                        stress_fig = go.Figure(data=[
+                                            go.Bar(
+                                                x=scenarios,
+                                                y=returns,
+                                                marker_color=colors,
+                                                text=[f"{ret:+.1f}%" for ret in returns],
+                                                textposition='auto',
+                                                hovertemplate='<b>%{x}</b><br>Return: %{y:.1f}%<br>Final Price: ₹%{customdata:,.2f}<extra></extra>',
+                                                customdata=[item['final_price'] for item in scenario_data]
+                                            )
+                                        ])
+                                        
+                                        stress_fig.update_layout(
+                                            title="Stress Test Results",
+                                            xaxis_title="Market Scenario",
+                                            yaxis_title="Total Return (%)",
+                                            template='plotly_dark',
+                                            height=400,
+                                            showlegend=False,
+                                            yaxis=dict(
+                                                zeroline=True,
+                                                zerolinewidth=2,
+                                                zerolinecolor='rgba(128,128,128,0.5)',
+                                                gridcolor='rgba(128,128,128,0.2)'
+                                            ),
+                                            xaxis=dict(
+                                                gridcolor='rgba(128,128,128,0.2)'
+                                            ),
+                                            plot_bgcolor='rgba(0,0,0,0)',
+                                            paper_bgcolor='rgba(0,0,0,0)'
+                                        )
+                                        
+                                        st.plotly_chart(stress_fig, use_container_width=True)
+                                
+                                else:
+                                    st.info("Stress test data not available for this analysis.")
+                        
+                        # Model Performance section
+                        if show_performance:
+                            st.markdown("---")
+                            st.subheader("🎯 Model Performance & Insights")
+                            
+                            perf_cols = st.columns(3)
+                            
+                            with perf_cols[0]:
+                                st.markdown("**📊 Data Quality**")
+                                st.write(f"• Historical data points: {len(close_data)}")
+                                st.write(f"• Data period: {prediction_result.get('data_points', 'N/A')} days")
+                                st.write(f"• Volatility: {prediction_result.get('volatility', 0.02):.2%}")
+                            
+                            with perf_cols[1]:
+                                st.markdown("**🧠 Model Composition**")
+                                st.write(f"• Primary method: {prediction_result.get('method', 'Ensemble')}")
+                                st.write(f"• Confidence factors: {len(prediction_result.get('confidence_factors', {}))}")
+                                st.write(f"• Prediction horizon: {prediction_steps} days")
+                            
+                            with perf_cols[2]:
+                                st.markdown("**⚡ Performance Metrics**")
+                                st.write(f"• AI confidence: {confidence:.1%}")
+                                st.write(f"• Risk score: {risk_score}/100")
+                                st.write(f"• Analysis time: <30 seconds")
+                            
+                            # Model components breakdown
+                            if show_components and 'individual_predictions' in prediction_result:
+                                st.markdown("**🔍 Individual Model Components**")
+                                
+                                individual_preds = prediction_result.get('individual_predictions', {})
+                                individual_confs = prediction_result.get('individual_confidences', {})
+                                
+                                if individual_preds:
+                                    comp_df = pd.DataFrame({
+                                        'Model': list(individual_preds.keys()),
+                                        'Final Prediction': [f"₹{pred[-1]:.2f}" if len(pred) > 0 else "N/A" for pred in individual_preds.values()],
+                                        'Confidence': [f"{individual_confs.get(model, 0.5):.1%}" for model in individual_preds.keys()],
+                                        'Weight': ['30%', '25%', '20%', '25%'][:len(individual_preds)]
+                                    })
+                                    
+                                    st.dataframe(comp_df, use_container_width=True, hide_index=True)
+                        
+                        # Trading Recommendations
+                        st.markdown("---")
+                        st.subheader("💡 AI Trading Recommendations")
+                        
+                        # Generate recommendations based on analysis
+                        recommendations = []
+                        
+                        if confidence > 0.75:
+                            recommendations.append("🟢 **High Confidence Signal** - Strong prediction reliability")
+                        elif confidence > 0.6:
+                            recommendations.append("🟡 **Moderate Confidence** - Consider position sizing")
+                        else:
+                            recommendations.append("🔴 **Low Confidence** - Wait for better signals")
+                        
+                        if risk_score < 40:
+                            recommendations.append("🟢 **Low Risk** - Suitable for conservative portfolios")
+                        elif risk_score < 70:
+                            recommendations.append("🟡 **Moderate Risk** - Standard position sizing")
+                        else:
+                            recommendations.append("🔴 **High Risk** - Consider reduced position or stop-loss")
+                        
+                        if abs(price_change) > 10:
+                            recommendations.append("⚡ **High Volatility Expected** - Monitor closely")
+                        
+                        if price_change > 5:
+                            recommendations.append("📈 **Bullish Outlook** - Potential upside opportunity")
+                        elif price_change < -5:
+                            recommendations.append("📉 **Bearish Outlook** - Consider defensive strategies")
+                        
+                        for rec in recommendations:
+                            st.markdown(rec)
+                        
+                        # Action Items
+                        st.markdown("**📋 Suggested Actions:**")
+                        if confidence > 0.7 and risk_score < 60:
+                            st.markdown("• ✅ Consider entering position with appropriate sizing")
+                            st.markdown("• ✅ Set stop-loss orders for risk management")
+                            st.markdown("• ✅ Monitor for confirmation signals")
+                        else:
+                            st.markdown("• ⏳ Wait for better entry opportunities")
+                            st.markdown("• ⏳ Monitor market conditions")
+                            st.markdown("• ⏳ Consider paper trading to test strategy")
+                        
+                        st.markdown("• 📊 Review analysis weekly")
+                        st.markdown("• 📈 Track actual vs predicted performance")
+                        
+                        # Export Results
+                        st.markdown("---")
+                        st.subheader("📥 Export Analysis Results")
+                        
+                        # Prepare export data
+                        export_data = {
+                            'Analysis Date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            'Stock Symbol': selected_stock,
+                            'Company Name': INDIAN_STOCKS.get(selected_stock, 'Unknown'),
+                            'Current Price': f"₹{current_price:.2f}",
+                            'Predicted Price': f"₹{predicted_price:.2f}",
+                            'Expected Change': f"{price_change:+.1f}%",
+                            'AI Confidence': f"{confidence:.1%}",
+                            'Risk Score': f"{risk_score}/100",
+                            'Analysis Method': prediction_result.get('method', 'Ensemble'),
+                            'Prediction Period': prediction_period,
+                            'Data Points Used': len(close_data),
+                            'Recommendations': '; '.join([rec.replace('🟢 ', '').replace('🟡 ', '').replace('🔴 ', '').replace('⚡ ', '').replace('📈 ', '').replace('📉 ', '') for rec in recommendations])
+                        }
+                        
+                        export_df = pd.DataFrame([export_data])
+                        csv_data = export_df.to_csv(index=False)
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.download_button(
+                    label="📥 Download Watchlist CSV",
+                    data=csv,
+                    file_name=f"watchlist_{user['username']}_{datetime.now().strftime('%Y%m%d')}.csv",
+                    mime="text/csv"
+                )
+            else:
+                st.warning("No watchlist data to export")
+    
+    # Account Management
+    st.subheader("🔐 Account Management")
+    
+    with st.expander("🔑 Change Password", expanded=False):
+        with st.form("change_password_form"):
+            current_password = st.text_input("Current Password", type="password")
+            new_password = st.text_input("New Password", type="password")
+            confirm_new_password = st.text_input("Confirm New Password", type="password")
+            
+            if new_password:
+                st.markdown(create_password_strength_indicator(new_password), unsafe_allow_html=True)
+            
+            if st.form_submit_button("🔄 Change Password"):
+                if not all([current_password, new_password, confirm_new_password]):
+                    st.error("❌ Please fill in all fields")
+                elif new_password != confirm_new_password:
+                    st.error("❌ New passwords don't match")
+                else:
+                    password_valid, password_msg = validate_password(new_password)
+                    if not password_valid:
+                        st.error(f"❌ {password_msg}")
+                    else:
+                        # Note: You'd need to implement change_password method in auth_handler
+                        st.info("🔄 Password change functionality would be implemented here")
+    
+    with st.expander("⚠️ Danger Zone", expanded=False):
+        st.markdown("### Delete Account")
+        st.warning("⚠️ This action cannot be undone. All your data will be permanently deleted.")
+        
+        delete_confirmation = st.text_input(
+            "Type 'DELETE' to confirm account deletion:",
+            placeholder="Type DELETE here"
+        )
+        
+        if st.button("🗑️ Delete Account", type="secondary", disabled=delete_confirmation != "DELETE"):
+            st.error("🚨 Account deletion functionality would be implemented here with proper confirmation")
+
+else:
+    # Handle cases where enhanced features aren't available
+    if not ENHANCED_FEATURES:
+        st.title("📈 Indian Stock Trading Dashboard")
+        st.warning("⚠️ Enhanced features (Authentication & ML) are not available.")
+        st.info("💡 To enable full functionality, install required packages:")
+        st.code("pip install tensorflow-cpu scikit-learn statsmodels bcrypt validators")
+        
+        st.markdown("---")
+        st.markdown("### Available Features:")
+        st.markdown("✅ Market Overview")
+        st.markdown("✅ Stock Analysis")  
+        st.markdown("✅ Portfolio Tracker")
+        st.markdown("✅ News & Sentiment")
+        st.markdown("❌ User Authentication")
+        st.markdown("❌ ML Predictions")
+        st.markdown("❌ Personal Settings")
+    
+    elif selected_nav not in ["📊 Market Overview", "📈 Stock Analysis", "💼 Portfolio Tracker", "📰 News & Sentiment"]:
+        st.title("🔒 Authentication Required")
+        st.info("Please login to access this feature.")
+        
+        # Quick login form in main area
+        with st.container():
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                st.markdown("### Quick Login")
+                with st.form("main_login_form"):
+                    username = st.text_input("Username")
+                    password = st.text_input("Password", type="password")
+                    
+                    if st.form_submit_button("Login", use_container_width=True):
+                        if username and password:
+                            user_id, message = st.session_state.auth_handler.verify_user(username, password)
+                            if user_id:
+                                st.session_state.logged_in = True
+                                st.session_state.user = st.session_state.auth_handler.get_user_info(user_id)
+                                st.success("✅ Login successful!")
+                                st.rerun()
+                            else:
+                                st.error(f"❌ {message}")
+
+# Footer with additional information
+st.markdown("---")
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown("### 🚀 Features")
+    st.markdown("- Real-time market data")
+    st.markdown("- Technical analysis")
+    st.markdown("- News sentiment analysis")
+    if ENHANCED_FEATURES:
+        st.markdown("- AI-powered predictions")
+        st.markdown("- User authentication")
+
+with col2:
+    st.markdown("### 📊 Data Sources")
+    st.markdown("- Yahoo Finance")
+    st.markdown("- NSE/BSE APIs")
+    st.markdown("- News aggregators")
+    st.markdown("- Technical indicators")
+
+with col3:
+    st.markdown("### ⚠️ Disclaimer")
+    st.markdown("This application is for educational purposes only.")
+    st.markdown("Not financial advice.")
+    st.markdown("Please consult qualified advisors.")
+
+# Performance metrics (if user is logged in)
+if ENHANCED_FEATURES and st.session_state.logged_in:
+    with st.sidebar:
+        if st.button("📊 Performance Metrics"):
+            st.session_state.show_performance = True
+        
+        if st.session_state.get('show_performance', False):
+            st.markdown("### 📈 Your Trading Stats")
+            # Mock performance data
+            st.metric("Portfolio Return", "+12.5%", "+2.3%")
+            st.metric("Win Rate", "68%", "+5%")
+            st.metric("Predictions Used", "23", "+3")
+            
+            if st.button("❌ Close"):
+                st.session_state.show_performance = False
+                st.rerun()
+                                label="📄 Download Analysis Report (CSV)",
+                                data=csv_data,
+                                file_name=f"AI_Analysis_{selected_stock}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                                mime="text/csv"
+                            )
+                        
+                        with col2:
+                            # JSON export for advanced users
+                            json_data = {
+                                'analysis_metadata': export_data,
+                                'predictions': prediction_result.get('predictions', []).tolist() if isinstance(prediction_result.get('predictions', []), np.ndarray) else prediction_result.get('predictions', []),
+                                'risk_metrics': risk_metrics if risk_metrics else {},
+                                'model_performance': {
+                                    'confidence': confidence,
+                                    'validation_passed': is_valid,
+                                    'individual_models': individual_confs
+                                }
+                            }
+                            
+                            import json
+                            json_str = json.dumps(json_data, indent=2, default=str)
+                            
+                            st.download_button(
+                                label="📊 Download Full Data (JSON)",
+                                data=json_str,
+                                file_name=f"AI_Analysis_Full_{selected_stock}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                                mime="application/json"
+                            )
+                        
+                        # Final disclaimer
+                        st.markdown("---")
+                        st.warning("⚠️ **Important Disclaimer:** This analysis is for educational purposes only and should not be considered as financial advice. Always consult with qualified financial advisors before making investment decisions.")
+                        
+            except Exception as e:
+                st.error(f"❌ Analysis failed: {str(e)}")
+                st.info("🔄 Please try again or contact support if the issue persists.")
+                
+                # Debug information for troubleshooting
+                with st.expander("🔧 Troubleshooting Information"):
+                    st.write("**Error Details:**")
+                    st.code(str(e))
+                    
+                    st.write("**Possible Solutions:**")
+                    st.write("1. Check your internet connection")
+                    st.write("2. Try a different stock symbol")
+                    st.write("3. Reduce the prediction period")
+                    st.write("4. Refresh the page and try again")
+                    
+                    st.write("**System Information:**")
+                    st.write(f"• Enhanced Features: {ENHANCED_FEATURES}")
+                    st.write(f"• User Logged In: {st.session_state.logged_in}")
+                    st.write(f"• Selected Stock: {selected_stock}")
+                    st.write(f"• Prediction Steps: {prediction_steps}")
 
 elif selected_nav == "⚙️ User Settings" and ENHANCED_FEATURES and st.session_state.logged_in:
     st.title("⚙️ User Settings & Preferences")
@@ -966,132 +1393,3 @@ elif selected_nav == "⚙️ User Settings" and ENHANCED_FEATURES and st.session
                 watchlist_df = pd.DataFrame(user_watchlist)
                 csv = watchlist_df.to_csv(index=False)
                 st.download_button(
-                    label="📥 Download Watchlist CSV",
-                    data=csv,
-                    file_name=f"watchlist_{user['username']}_{datetime.now().strftime('%Y%m%d')}.csv",
-                    mime="text/csv"
-                )
-            else:
-                st.warning("No watchlist data to export")
-    
-    # Account Management
-    st.subheader("🔐 Account Management")
-    
-    with st.expander("🔑 Change Password", expanded=False):
-        with st.form("change_password_form"):
-            current_password = st.text_input("Current Password", type="password")
-            new_password = st.text_input("New Password", type="password")
-            confirm_new_password = st.text_input("Confirm New Password", type="password")
-            
-            if new_password:
-                st.markdown(create_password_strength_indicator(new_password), unsafe_allow_html=True)
-            
-            if st.form_submit_button("🔄 Change Password"):
-                if not all([current_password, new_password, confirm_new_password]):
-                    st.error("❌ Please fill in all fields")
-                elif new_password != confirm_new_password:
-                    st.error("❌ New passwords don't match")
-                else:
-                    password_valid, password_msg = validate_password(new_password)
-                    if not password_valid:
-                        st.error(f"❌ {password_msg}")
-                    else:
-                        # Note: You'd need to implement change_password method in auth_handler
-                        st.info("🔄 Password change functionality would be implemented here")
-    
-    with st.expander("⚠️ Danger Zone", expanded=False):
-        st.markdown("### Delete Account")
-        st.warning("⚠️ This action cannot be undone. All your data will be permanently deleted.")
-        
-        delete_confirmation = st.text_input(
-            "Type 'DELETE' to confirm account deletion:",
-            placeholder="Type DELETE here"
-        )
-        
-        if st.button("🗑️ Delete Account", type="secondary", disabled=delete_confirmation != "DELETE"):
-            st.error("🚨 Account deletion functionality would be implemented here with proper confirmation")
-
-else:
-    # Handle cases where enhanced features aren't available
-    if not ENHANCED_FEATURES:
-        st.title("📈 Indian Stock Trading Dashboard")
-        st.warning("⚠️ Enhanced features (Authentication & ML) are not available.")
-        st.info("💡 To enable full functionality, install required packages:")
-        st.code("pip install tensorflow-cpu scikit-learn statsmodels bcrypt validators")
-        
-        st.markdown("---")
-        st.markdown("### Available Features:")
-        st.markdown("✅ Market Overview")
-        st.markdown("✅ Stock Analysis")  
-        st.markdown("✅ Portfolio Tracker")
-        st.markdown("✅ News & Sentiment")
-        st.markdown("❌ User Authentication")
-        st.markdown("❌ ML Predictions")
-        st.markdown("❌ Personal Settings")
-    
-    elif selected_nav not in ["📊 Market Overview", "📈 Stock Analysis", "💼 Portfolio Tracker", "📰 News & Sentiment"]:
-        st.title("🔒 Authentication Required")
-        st.info("Please login to access this feature.")
-        
-        # Quick login form in main area
-        with st.container():
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                st.markdown("### Quick Login")
-                with st.form("main_login_form"):
-                    username = st.text_input("Username")
-                    password = st.text_input("Password", type="password")
-                    
-                    if st.form_submit_button("Login", use_container_width=True):
-                        if username and password:
-                            user_id, message = st.session_state.auth_handler.verify_user(username, password)
-                            if user_id:
-                                st.session_state.logged_in = True
-                                st.session_state.user = st.session_state.auth_handler.get_user_info(user_id)
-                                st.success("✅ Login successful!")
-                                st.rerun()
-                            else:
-                                st.error(f"❌ {message}")
-
-# Footer with additional information
-st.markdown("---")
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.markdown("### 🚀 Features")
-    st.markdown("- Real-time market data")
-    st.markdown("- Technical analysis")
-    st.markdown("- News sentiment analysis")
-    if ENHANCED_FEATURES:
-        st.markdown("- AI-powered predictions")
-        st.markdown("- User authentication")
-
-with col2:
-    st.markdown("### 📊 Data Sources")
-    st.markdown("- Yahoo Finance")
-    st.markdown("- NSE/BSE APIs")
-    st.markdown("- News aggregators")
-    st.markdown("- Technical indicators")
-
-with col3:
-    st.markdown("### ⚠️ Disclaimer")
-    st.markdown("This application is for educational purposes only.")
-    st.markdown("Not financial advice.")
-    st.markdown("Please consult qualified advisors.")
-
-# Performance metrics (if user is logged in)
-if ENHANCED_FEATURES and st.session_state.logged_in:
-    with st.sidebar:
-        if st.button("📊 Performance Metrics"):
-            st.session_state.show_performance = True
-        
-        if st.session_state.get('show_performance', False):
-            st.markdown("### 📈 Your Trading Stats")
-            # Mock performance data
-            st.metric("Portfolio Return", "+12.5%", "+2.3%")
-            st.metric("Win Rate", "68%", "+5%")
-            st.metric("Predictions Used", "23", "+3")
-            
-            if st.button("❌ Close"):
-                st.session_state.show_performance = False
-                st.rerun()
